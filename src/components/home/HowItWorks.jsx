@@ -33,7 +33,7 @@ export default function HowItWorks() {
         </div>
         <div className="grid md:grid-cols-3 gap-6 relative">
           <div className="hidden md:block absolute top-10 right-[calc(33%+24px)] left-[calc(33%+24px)] h-0.5 bg-border" />
-          {steps.map((s, i) => (
+          {steps?.map((s, i) => (
             <div key={i} className="text-center relative">
               <div className="relative inline-flex">
                 <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">

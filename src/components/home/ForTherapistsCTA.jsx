@@ -24,7 +24,7 @@ export default function ForTherapistsCTA() {
               {t.forTherapistsDesc || "הגע/י למטופלים חדשים ובנה/י נוכחות דיגיטלית מקצועית. הצטרפות חינמית — אנו מאמתים ומקדמים את הפרופיל שלך."}
             </p>
             <div className="flex flex-col gap-2.5 mb-6">
-              {perks.map((perk, i) => (
+              {perks?.map((perk, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <perk.icon className="w-4 h-4 text-primary" />
                   <span>{perk.text}</span>

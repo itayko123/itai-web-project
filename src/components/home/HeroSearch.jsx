@@ -88,7 +88,7 @@ export default function HeroSearch() {
               </div>
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {ISRAEL_LOCATIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              {ISRAEL_LOCATIONS?.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
 
@@ -99,10 +99,10 @@ export default function HeroSearch() {
               <SelectValue placeholder={t.treatment || "תחום טיפול"} />
             </SelectTrigger>
             <SelectContent className="max-h-80">
-              {SPECIALIZATION_GROUPS.map(g => (
+              {SPECIALIZATION_GROUPS?.map(g => (
                 <div key={g.group}>
                   <div className="px-2 py-1.5 text-xs font-semibold text-gray-700 bg-muted/30">{g.group}</div>
-                  {g.items.map(item => (
+                  {g.items?.map(item => (
                     <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
                   ))}
                 </div>
@@ -196,10 +196,10 @@ export default function HeroSearch() {
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
                   <SelectItem value={null}>כל השיטות</SelectItem>
-                  {TREATMENT_METHOD_GROUPS.map(g => (
+                  {TREATMENT_METHOD_GROUPS?.map(g => (
                     <div key={g.group}>
                       <div className="px-2 py-1 text-xs font-semibold text-gray-700 bg-muted/30">{g.group}</div>
-                      {g.items.map(item => (
+                      {g.items?.map(item => (
                         <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
                       ))}
                     </div>
@@ -226,7 +226,7 @@ export default function HeroSearch() {
 
         {/* Quick chips */}
         <div className="flex flex-wrap justify-center gap-2 mt-5">
-          {["חרדה", "דיכאון", "טראומה", "זוגיות", "ADHD", "שחיקה"].map(tag => (
+          {["חרדה", "דיכאון", "טראומה", "זוגיות", "ADHD", "שחיקה"]?.map(tag => (
             <button
               key={tag}
               onClick={() => navigate(`/therapists?concern=${encodeURIComponent(tag)}`)}

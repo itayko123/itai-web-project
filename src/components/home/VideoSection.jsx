@@ -127,7 +127,7 @@ export default function VideoSection() {
 
           {/* Steps */}
           <div className="md:col-span-2 space-y-5 pt-2">
-            {STEPS.map((s, i) => (
+            {STEPS?.map((s, i) => (
               <div key={i} className="flex gap-4 items-start group">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-black text-sm flex items-center justify-center flex-shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
                   {s.num}
@@ -146,7 +146,7 @@ export default function VideoSection() {
                   { v: "500+", l: "מטפלים" },
                   { v: "2 דק'", l: "לשאלון" },
                   { v: "100%", l: "חינמי" },
-                ].map((s, i) => (
+                ]?.map((s, i) => (
                   <div key={i}>
                     <div className="text-lg font-black text-primary">{s.v}</div>
                     <div className="text-xs" style={{ color: '#374151' }}>{s.l}</div>

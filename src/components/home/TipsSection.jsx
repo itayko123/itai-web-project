@@ -23,7 +23,7 @@ export default function TipsSection() {
           <p className="text-muted-foreground text-sm">{t.tipsSubtitle || "ידע מעשי שאפשר ליישם כבר היום"}</p>
         </div>
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {tipsData.map((tip, i) => (
+          {tipsData?.map((tip, i) => (
             <div key={i} className="bg-white rounded-2xl p-5 border border-border hover:shadow-md hover:-translate-y-1 transition-all duration-200">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${tip.colorClass}`}>
                 <tip.icon className="w-5 h-5" />

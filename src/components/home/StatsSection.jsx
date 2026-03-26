@@ -52,7 +52,7 @@ export default function StatsSection() {
   return (
     <section className="bg-primary py-14 px-4">
       <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-        {stats.map((s, i) => (
+        {stats?.map((s, i) => (
           <div key={i}>
             <p className="text-3xl md:text-4xl font-black text-primary-foreground">
               <CountUp target={s.target} suffix={s.suffix} duration={1800} />

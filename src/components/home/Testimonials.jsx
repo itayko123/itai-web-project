@@ -18,10 +18,10 @@ export default function Testimonials() {
           <p className="text-sm" style={{ color: '#374151' }}>{t.testimonialsSubtitle || "חוויות אמיתיות מאנשים שמצאו עזרה דרכנו"}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-5">
-          {testimonials.map((item, i) => (
+          {testimonials?.map((item, i) => (
             <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-border flex flex-col gap-4">
               <div className="flex gap-0.5">
-                {[...Array(item.rating)].map((_, j) => (
+                {[...Array(item.rating)]?.map((_, j) => (
                   <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>

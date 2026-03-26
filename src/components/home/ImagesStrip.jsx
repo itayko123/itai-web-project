@@ -29,7 +29,7 @@ export default function ImagesStrip() {
   return (
     <section className="py-10 px-4 overflow-hidden">
       <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3">
-        {images.map((img, i) => (
+        {images?.map((img, i) => (
           <div key={i} className="relative rounded-2xl overflow-hidden group cursor-pointer" style={{ aspectRatio: "4/5" }}>
             <img
               src={img.src}

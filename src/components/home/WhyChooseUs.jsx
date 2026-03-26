@@ -19,7 +19,7 @@ export default function WhyChooseUs() {
         <h2 className="text-2xl font-bold text-center mb-2">{t.whyTitle || "למה מצא לי מטפל?"}</h2>
         <p className="text-muted-foreground text-center text-sm mb-10">{t.whySubtitle || "הדרך הבטוחה למצוא את המטפל שמתאים בדיוק לך"}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
+          {features?.map((f, i) => (
             <div key={i} className="bg-card border border-border rounded-2xl p-6 text-center hover:shadow-md hover:border-primary/20 hover:-translate-y-1 transition-all duration-200 group">
               <div className="mx-auto w-12 h-12 rounded-xl bg-accent flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-colors">
                 <f.icon className="w-5 h-5 text-primary" />
