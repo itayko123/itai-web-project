@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import TherapistCard from "@/components/therapist/TherapistCard";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -9,7 +9,16 @@ export default function FeaturedTherapists() {
   const { t } = useLanguage();
   const { data: therapists = [] } = useQuery({
     queryKey: ["featured-therapists"],
-    queryFn: () => base44.entities.Therapist.filter({ status: "approved" }, "-average_rating", 6),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("Therapist")
+        .select("*")
+        .eq("status", "approved")
+        .order("average_rating", { ascending: false })
+        .limit(6);
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   if (therapists.length === 0) return null;

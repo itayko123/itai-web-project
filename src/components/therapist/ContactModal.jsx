@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +24,12 @@ export default function ContactModal({ therapist, open, onClose, type = "message
       contact_type: type,
       lead_month: new Date().toISOString().slice(0, 7),
     };
-    await base44.entities.ContactRequest.create(contactData);
+    const { error } = await supabase.from("ContactRequest").insert(contactData);
+    if (error) throw error;
     // Notify admin and therapist directly
-    await base44.functions.invoke("notifyNewContact", { data: { ...contactData, therapist_name: therapist.full_name, therapist_email: therapist.email } });
+    await supabase.functions.invoke("notify-new-contact", {
+      body: { ...contactData, therapist_name: therapist.full_name, therapist_email: therapist.email }
+    });
     setLoading(false);
     toast.success("הפנייה נשלחה בהצלחה!");
     onClose();

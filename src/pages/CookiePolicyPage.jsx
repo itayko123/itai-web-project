@@ -43,7 +43,7 @@ export default function CookiePolicyPage() {
             <div className="bg-muted/40 rounded-xl p-4 border border-border">
               <h3 className="font-semibold mb-1">3. עוגיות פלטפורמה (Platform Cookies)</h3>
               <p className="text-muted-foreground">
-                האתר בנוי על גבי פלטפורמת Base44. פלטפורמה זו עשויה להשתמש בעוגיות נוספות לצורך ניהול
+                האתר בנוי על גבי תשתית Supabase. התשתית עשויה להשתמש בעוגיות נוספות לצורך ניהול
                 סשנים, אבטחה ותפעול השירות.
               </p>
             </div>

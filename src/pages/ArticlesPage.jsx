@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Link } from "react-router-dom";
 import { Clock, BookOpen, User, Loader2, Search, ChevronLeft, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,16 @@ export default function ArticlesPage() {
 
   const { data: articles = [], isLoading } = useQuery({
     queryKey: ["published-articles"],
-    queryFn: () => base44.entities.Article.filter({ status: "published" }, "-created_date", 50),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("Article")
+        .select("*")
+        .eq("status", "published")
+        .order("created_date", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const filtered = articles.filter(a => {

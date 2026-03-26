@@ -7,8 +7,8 @@
  *   is a defence-in-depth layer that protects against stored XSS if content
  *   is ever rendered via dangerouslySetInnerHTML or third-party components.
  *
- * SQL Injection: Not applicable — the app uses Base44's entity SDK (no raw SQL).
- * Auth / Secrets: Managed entirely by the Base44 platform SDK.
+ * SQL Injection: Not applicable — the app uses Supabase client queries (no raw SQL from user input).
+ * Auth / Secrets: Managed by Supabase Auth and RLS.
  */
 
 /**
@@ -26,7 +26,7 @@ export function sanitizeText(value) {
 
 /**
  * Sanitizes all string values in a plain object one level deep.
- * Use before any entity.create() / entity.update() call with user input.
+ * Use before any insert/update call with user input.
  */
 export function sanitizeFormData(obj) {
   if (!obj || typeof obj !== "object") return obj;

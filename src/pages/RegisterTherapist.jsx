@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
+import { uploadTherapistFile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,8 +88,8 @@ export default function RegisterTherapist() {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setPhotoUrl(file_url);
+    const fileUrl = await uploadTherapistFile(file, "photos");
+    setPhotoUrl(fileUrl);
     setUploadingPhoto(false);
     toast.success(t.registerPhotoUploaded || "תמונה הועלתה בהצלחה");
   };
@@ -97,8 +98,8 @@ export default function RegisterTherapist() {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingLicense(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setLicenseDocUrl(file_url);
+    const fileUrl = await uploadTherapistFile(file, "licenses");
+    setLicenseDocUrl(fileUrl);
     setUploadingLicense(false);
     toast.success(t.registerLicenseUploaded || "מסמך הרישיון הועלה בהצלחה");
   };
@@ -123,9 +124,10 @@ export default function RegisterTherapist() {
       license_document_url: licenseDocUrl || undefined,
       status: "pending",
     };
-    await base44.entities.Therapist.create(therapistData);
+    const { error } = await supabase.from("Therapist").insert(therapistData);
+    if (error) throw error;
     // Notify admin directly
-    await base44.functions.invoke("notifyNewTherapist", { data: therapistData });
+    await supabase.functions.invoke("notify-new-therapist", { body: therapistData });
     setLoading(false);
     setSubmitted(true);
   };

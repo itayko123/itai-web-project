@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,12 +30,24 @@ export default function PortalArticles({ therapistId, therapistName }) {
 
   const { data: articles = [], isLoading } = useQuery({
     queryKey: ["portal-articles", therapistId],
-    queryFn: () => base44.entities.Article.filter({ therapist_id: therapistId }, "-created_date", 20),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("Article")
+        .select("*")
+        .eq("therapist_id", therapistId)
+        .order("created_date", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: !!therapistId,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Article.create(data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("Article").insert(data);
+      if (error) throw error;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["portal-articles"] });
       toast.success("המאמר נשלח לאישור");
@@ -44,7 +56,10 @@ export default function PortalArticles({ therapistId, therapistName }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Article.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("Article").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["portal-articles"] });
       toast.success("המאמר עודכן");

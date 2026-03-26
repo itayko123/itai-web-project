@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import TherapistCard from "@/components/therapist/TherapistCard";
@@ -195,7 +195,13 @@ export default function MatchQuizPage() {
 
   const findMatches = async (ans) => {
     setLoading(true);
-    const allTherapists = await base44.entities.Therapist.filter({ status: "approved" }, "-average_rating", 100);
+    const { data: allTherapists, error: therapistsError } = await supabase
+      .from("Therapist")
+      .select("*")
+      .eq("status", "approved")
+      .order("average_rating", { ascending: false })
+      .limit(100);
+    if (therapistsError) throw therapistsError;
 
     const budget = parseInt(ans.budget) || 800;
     const concern = ans.concern ? ans.concern.split(",") : [];
@@ -223,7 +229,7 @@ export default function MatchQuizPage() {
     scored.sort((a, b) => b._score - a._score);
     const top = scored.slice(0, 5);
 
-    await base44.entities.MatchQuiz.create({
+    const { error: quizError } = await supabase.from("MatchQuiz").insert({
       concern: ans.concern,
       preferred_gender: ans.preferred_gender,
       preferred_format: ans.preferred_format,
@@ -234,6 +240,7 @@ export default function MatchQuizPage() {
       age_group: ans.age_group,
       recommended_therapist_ids: top.map(t => t.id),
     });
+    if (quizError) throw quizError;
 
     setResults(top);
     setLoading(false);

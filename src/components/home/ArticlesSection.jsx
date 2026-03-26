@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Link } from "react-router-dom";
 import { Clock, User, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -20,7 +20,16 @@ export default function ArticlesSection() {
   const { t } = useLanguage();
   const { data: articles = [] } = useQuery({
     queryKey: ["home-articles"],
-    queryFn: () => base44.entities.Article.filter({ status: "published" }, "-created_date", 3),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("Article")
+        .select("*")
+        .eq("status", "published")
+        .order("created_date", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   if (articles.length === 0) return null;

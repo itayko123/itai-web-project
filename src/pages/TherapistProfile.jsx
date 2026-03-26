@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -43,16 +43,20 @@ function ContactForm({ therapist }) {
     mutationFn: async () => {
       const now = new Date();
       const lead_month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      // Create contact request with month tracking
-      await base44.entities.ContactRequest.create({
+      const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         ...sanitizeFormData(form),
         contact_type: "message",
         lead_month,
       });
+      if (contactError) throw contactError;
       // Increment lead counter on therapist
       const currentLeads = therapist.lead_count || 0;
-      await base44.entities.Therapist.update(therapist.id, { lead_count: currentLeads + 1 });
+      const { error: therapistError } = await supabase
+        .from("Therapist")
+        .update({ lead_count: currentLeads + 1 })
+        .eq("id", therapist.id);
+      if (therapistError) throw therapistError;
     },
     onSuccess: () => {
       setSubmitted(true);
@@ -139,8 +143,11 @@ export default function TherapistProfile() {
 
   const { data: therapist, isLoading } = useQuery({
     queryKey: ["therapist", id],
-    queryFn: () => base44.entities.Therapist.filter({ id }),
-    select: data => data[0],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("Therapist").select("*").eq("id", id).limit(1);
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
   });
 
   if (isLoading) return (

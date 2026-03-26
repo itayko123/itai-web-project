@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Clock, ArrowRight, User, BookOpen, ExternalLink, BadgeCheck } from "lucide-react";
@@ -26,11 +26,16 @@ export default function ArticleDetailPage() {
   const { data: article, isLoading } = useQuery({
     queryKey: ["article", id],
     queryFn: async () => {
-      const results = await base44.entities.Article.filter({ id });
-      const found = results[0];
+      const { data, error } = await supabase.from("Article").select("*").eq("id", id).limit(1);
+      if (error) throw error;
+      const found = data?.[0];
       if (found) {
         // Increment view count
-        base44.entities.Article.update(found.id, { view_count: (found.view_count || 0) + 1 }).catch(() => {});
+        supabase
+          .from("Article")
+          .update({ view_count: (found.view_count || 0) + 1 })
+          .eq("id", found.id)
+          .catch(() => {});
       }
       return found;
     },
@@ -38,7 +43,11 @@ export default function ArticleDetailPage() {
 
   const { data: therapistList = [] } = useQuery({
     queryKey: ["article-author", article?.therapist_id],
-    queryFn: () => base44.entities.Therapist.filter({ id: article.therapist_id }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("Therapist").select("*").eq("id", article.therapist_id).limit(1);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: !!article?.therapist_id,
   });
   const therapist = therapistList[0];

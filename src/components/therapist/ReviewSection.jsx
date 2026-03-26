@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Star, BadgeCheck, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,11 +43,18 @@ export default function ReviewSection({ therapistId }) {
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", therapistId],
-    queryFn: () => base44.entities.Review.filter({ therapist_id: therapistId, approved: true }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("Review").select("*").eq("therapist_id", therapistId).eq("approved", true);
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const mutation = useMutation({
-    mutationFn: data => base44.entities.Review.create(data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("Review").insert(data);
+      if (error) throw error;
+    },
     onSuccess: () => {
       qc.invalidateQueries(["reviews", therapistId]);
       toast.success("הביקורת נשלחה ותפורסם לאחר אישור");

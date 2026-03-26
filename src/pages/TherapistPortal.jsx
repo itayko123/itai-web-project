@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
+import { uploadTherapistFile } from "@/lib/storage";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,11 @@ export default function TherapistPortal() {
 
   const { data: therapistList = [], isLoading } = useQuery({
     queryKey: ["my-therapist-profile", user?.email],
-    queryFn: () => base44.entities.Therapist.filter({ email: user?.email }),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("Therapist").select("*").eq("email", user?.email);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: !!user?.email,
   });
 
@@ -58,12 +63,24 @@ export default function TherapistPortal() {
 
   const { data: requests = [] } = useQuery({
     queryKey: ["my-contact-requests", therapist?.id],
-    queryFn: () => base44.entities.ContactRequest.filter({ therapist_id: therapist?.id }, "-created_date", 50),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ContactRequest")
+        .select("*")
+        .eq("therapist_id", therapist?.id)
+        .order("created_date", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
     enabled: !!therapist?.id,
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.Therapist.update(therapist.id, data),
+    mutationFn: async (data) => {
+      const { error } = await supabase.from("Therapist").update(data).eq("id", therapist.id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
       toast.success("הפרופיל עודכן בהצלחה");
@@ -73,7 +90,10 @@ export default function TherapistPortal() {
   });
 
   const markResponded = useMutation({
-    mutationFn: (id) => base44.entities.ContactRequest.update(id, { status: "responded" }),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("ContactRequest").update({ status: "responded" }).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-contact-requests"] }),
   });
 
@@ -83,7 +103,7 @@ export default function TherapistPortal() {
         <UserCircle2 className="w-12 h-12 text-primary" />
         <h1 className="text-xl font-bold">אזור מטפלים</h1>
         <p className="text-muted-foreground text-sm">יש להתחבר כדי לגשת לאזור המטפלים.</p>
-        <Button onClick={() => base44.auth.redirectToLogin(window.location.pathname)}>התחבר</Button>
+        <Button onClick={() => window.location.assign("/")}>התחבר</Button>
       </div>
     );
   }
@@ -143,8 +163,8 @@ export default function TherapistPortal() {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await base44.entities.Therapist.update(therapist.id, { photo_url: file_url });
+    const fileUrl = await uploadTherapistFile(file, "photos");
+    await supabase.from("Therapist").update({ photo_url: fileUrl }).eq("id", therapist.id);
     qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
     toast.success("תמונת הפרופיל עודכנה");
     setUploadingPhoto(false);
@@ -154,8 +174,8 @@ export default function TherapistPortal() {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingLicense(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await base44.entities.Therapist.update(therapist.id, { license_document_url: file_url });
+    const fileUrl = await uploadTherapistFile(file, "licenses");
+    await supabase.from("Therapist").update({ license_document_url: fileUrl }).eq("id", therapist.id);
     qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
     toast.success("מסמך הרישיון הועלה בהצלחה. הצוות שלנו יאמת אותו בקרוב.");
     setUploadingLicense(false);

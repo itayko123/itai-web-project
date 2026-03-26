@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import TherapistCard from "@/components/therapist/TherapistCard";
 import FilterPanel from "@/components/therapist/FilterPanel";
 import { SlidersHorizontal, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
@@ -29,7 +29,16 @@ export default function TherapistSearch() {
 
   const { data: therapists = [], isLoading } = useQuery({
     queryKey: ["therapists"],
-    queryFn: () => base44.entities.Therapist.filter({ status: "approved" }, "-average_rating", 200),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("Therapist")
+        .select("*")
+        .eq("status", "approved")
+        .order("average_rating", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
     staleTime: 5 * 60 * 1000,
   });
 

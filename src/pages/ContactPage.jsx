@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,8 +17,8 @@ export default function ContactPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await base44.functions.invoke("notifyNewContact", {
-      data: {
+    await supabase.functions.invoke("notify-new-contact", {
+      body: {
         patient_name: form.name,
         patient_email: form.email,
         message: `נושא: ${form.subject}\n\n${form.message}`,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -25,17 +25,31 @@ export default function TherapistManagement() {
 
   const { data: therapists = [], isLoading } = useQuery({
     queryKey: ["admin-all-therapists"],
-    queryFn: () => base44.entities.Therapist.list("-created_date", 200),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("Therapist")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Therapist.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const { error } = await supabase.from("Therapist").update(data).eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { qc.invalidateQueries(["admin-all-therapists"]); toast.success("פרופיל עודכן"); setEditId(null); },
     onError: () => toast.error("שגיאה בעדכון"),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Therapist.delete(id),
+    mutationFn: async (id) => {
+      const { error } = await supabase.from("Therapist").delete().eq("id", id);
+      if (error) throw error;
+    },
     onSuccess: () => { qc.invalidateQueries(["admin-all-therapists"]); toast.success("מטפל נמחק"); setConfirmDelete(null); },
     onError: () => toast.error("שגיאה במחיקה"),
   });
