@@ -35,6 +35,12 @@ export default function HeroSearch() {
     navigate(`/therapists?${params.toString()}`);
   };
 
+  // Safe variables with fallbacks to prevent crashes
+  const safeSearchTitle = t.searchTitle || "מצא את המטפל המתאים לך";
+  const titleWords = safeSearchTitle.split(" ");
+  const titlePart1 = titleWords.slice(0, 3).join(" ");
+  const titlePart2 = titleWords.slice(3).join(" ");
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-teal-50 via-background to-sky-50 pt-16 pb-20 px-4">
       <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
@@ -47,9 +53,9 @@ export default function HeroSearch() {
         </div>
 
         <h1 className="text-4xl md:text-5xl font-black text-foreground leading-tight mb-4" id="hero-heading">
-          {t.searchTitle.split(" ").slice(0, 3).join(" ")}
-          <br />
-          <span className="text-primary">{t.searchTitle.split(" ").slice(3).join(" ")}</span>
+          {titlePart1}
+          {titlePart2 && <br />}
+          <span className="text-primary">{titlePart2}</span>
         </h1>
 
         <p className="text-lg mb-4 max-w-xl mx-auto" style={{ color: '#374151' }}>{t.searchSubtitle}</p>
@@ -61,7 +67,7 @@ export default function HeroSearch() {
         <div className="bg-white rounded-2xl shadow-lg border border-border p-2 flex flex-col md:flex-row gap-2">
           <Select onValueChange={setProfession}>
             <SelectTrigger className="flex-1 h-12 border-0 shadow-none text-sm bg-transparent">
-              <SelectValue placeholder={t.therapistType} />
+              <SelectValue placeholder={t.therapistType || "סוג מטפל"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="psychologist">פסיכולוג/ית</SelectItem>
@@ -78,7 +84,7 @@ export default function HeroSearch() {
             <SelectTrigger className="flex-1 h-12 border-0 shadow-none text-sm bg-transparent">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-gray-500" aria-hidden="true" />
-                <SelectValue placeholder={t.city} />
+                <SelectValue placeholder={t.city || "עיר"} />
               </div>
             </SelectTrigger>
             <SelectContent className="max-h-72">
@@ -90,7 +96,7 @@ export default function HeroSearch() {
 
           <Select onValueChange={setSpecialization}>
             <SelectTrigger className="flex-1 h-12 border-0 shadow-none text-sm bg-transparent">
-              <SelectValue placeholder={t.treatment} />
+              <SelectValue placeholder={t.treatment || "תחום טיפול"} />
             </SelectTrigger>
             <SelectContent className="max-h-80">
               {SPECIALIZATION_GROUPS.map(g => (
@@ -106,7 +112,7 @@ export default function HeroSearch() {
 
           <Button onClick={handleSearch} className="h-12 px-6 rounded-xl font-semibold text-sm">
             <Search className="w-4 h-4 ml-2" aria-hidden="true" />
-            {t.searchBtn}
+            {t.searchBtn || "חיפוש"}
           </Button>
         </div>
 
@@ -146,7 +152,7 @@ export default function HeroSearch() {
 
             <Select onValueChange={setFormat}>
               <SelectTrigger className="h-10 text-sm">
-                <SelectValue placeholder={t.format} />
+                <SelectValue placeholder={t.format || "אופן טיפול"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="in_person">פנים אל פנים</SelectItem>
@@ -157,7 +163,7 @@ export default function HeroSearch() {
 
             <Select onValueChange={setLanguage}>
               <SelectTrigger className="h-10 text-sm">
-                <SelectValue placeholder={t.language} />
+                <SelectValue placeholder={t.language || "שפה"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="hebrew">עברית</SelectItem>
