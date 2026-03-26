@@ -21,7 +21,10 @@ export default function FeaturedTherapists() {
     },
   });
 
-  if (therapists.length === 0) return null;
+  // הבטחה שתמיד יש מערך לפני שעושים פעולות
+  const safeTherapists = therapists || [];
+
+  if (safeTherapists.length === 0) return null;
 
   return (
     <section className="py-16 px-4 bg-muted/40">
@@ -37,7 +40,7 @@ export default function FeaturedTherapists() {
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {therapists.map((t, i) => (
+          {safeTherapists?.map((t, i) => (
             <TherapistCard key={t.id} therapist={t} priority={i < 3} />
           ))}
         </div>

@@ -32,7 +32,10 @@ export default function ArticlesSection() {
     },
   });
 
-  if (articles.length === 0) return null;
+  // הבטחה שתמיד יש מערך לפני שעושים פעולות
+  const safeArticles = articles || [];
+
+  if (safeArticles.length === 0) return null;
 
   return (
     <section className="py-16 px-4 bg-background">
@@ -47,7 +50,7 @@ export default function ArticlesSection() {
           </Link>
         </div>
         <div className="grid md:grid-cols-3 gap-5">
-          {articles.map(article => (
+          {safeArticles?.map(article => (
             <Link key={article.id} to={`/articles/${article.id}`} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 block">
               {article.cover_image_url && (
                 <div className="h-40 overflow-hidden">
