@@ -84,37 +84,39 @@ function ContactRequests() {
     onSuccess: () => qc.invalidateQueries(["admin-contacts"]),
   });
 
-  // Build lead counts: total and per-month per therapist
+  // הבטחה שתמיד יש מערך כדי למנוע קריסות
+  const safeRequests = requests || [];
+  const safeTherapists = therapists || [];
+
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const prevMonth = (() => { const d = new Date(now.getFullYear(), now.getMonth() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; })();
 
-  const leadCounts = requests.reduce((acc, r) => {
+  const leadCounts = safeRequests.reduce((acc, r) => {
     acc[r.therapist_id] = (acc[r.therapist_id] || 0) + 1;
     return acc;
   }, {});
-  const monthlyLeads = requests.reduce((acc, r) => {
+  const monthlyLeads = safeRequests.reduce((acc, r) => {
     const month = r.lead_month || r.created_date?.slice(0, 7) || "?";
     if (!acc[r.therapist_id]) acc[r.therapist_id] = {};
     acc[r.therapist_id][month] = (acc[r.therapist_id][month] || 0) + 1;
     return acc;
   }, {});
 
-  const therapistMap = Object.fromEntries(therapists.map(t => [t.id, t.full_name]));
+  const therapistMap = Object.fromEntries(safeTherapists.map(t => [t.id, t.full_name]));
 
   if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6">
-      {/* Lead summary per therapist with monthly breakdown */}
-      {therapists.length > 0 && (
+      {safeTherapists.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-5">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-primary" />
             סיכום פניות לפי מטפל (חודשי)
           </h2>
           <div className="space-y-2">
-            {[...therapists].sort((a, b) => (leadCounts[b.id] || 0) - (leadCounts[a.id] || 0)).map(t => {
+            {[...safeTherapists].sort((a, b) => (leadCounts[b.id] || 0) - (leadCounts[a.id] || 0)).map(t => {
               const thisMonth = monthlyLeads[t.id]?.[currentMonth] || 0;
               const lastMonth = monthlyLeads[t.id]?.[prevMonth] || 0;
               return (
@@ -132,9 +134,9 @@ function ContactRequests() {
         </div>
       )}
 
-      {requests.length === 0 ? <EmptyState text="אין פניות עדיין" /> : (
+      {safeRequests.length === 0 ? <EmptyState text="אין פניות עדיין" /> : (
         <div className="space-y-3">
-          {requests.map(r => (
+          {safeRequests.map(r => (
             <div key={r.id} className={`bg-card border rounded-xl p-4 ${r.status === "pending" ? "border-primary/40" : "border-border"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 space-y-1">
@@ -206,11 +208,13 @@ function TherapistRegistrations() {
   const profLabels = { psychologist: "פסיכולוג/ית", psychiatrist: "פסיכיאטר/ית", psychotherapist: "פסיכותרפיסט/ית", social_worker: 'עו"ס קליני', counselor: "יועץ/ת" };
 
   if (isLoading) return <LoadingSpinner />;
-  if (therapists.length === 0) return <EmptyState text="אין הרשמות ממתינות" />;
+  
+  const safeTherapists = therapists || [];
+  if (safeTherapists.length === 0) return <EmptyState text="אין הרשמות ממתינות" />;
 
   return (
     <div className="space-y-4">
-      {therapists.map(t => (
+      {safeTherapists.map(t => (
         <div key={t.id} className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 space-y-1">
@@ -286,11 +290,13 @@ function PendingArticles() {
   const categoryLabels = { anxiety: "חרדה", depression: "דיכאון", relationships: "זוגיות", parenting: "הורות", trauma: "טראומה", mindfulness: "מיינדפולנס", general: "כללי" };
 
   if (isLoading) return <LoadingSpinner />;
-  if (articles.length === 0) return <EmptyState text="אין מאמרים ממתינים לאישור" />;
+  
+  const safeArticles = articles || [];
+  if (safeArticles.length === 0) return <EmptyState text="אין מאמרים ממתינים לאישור" />;
 
   return (
     <div className="space-y-4">
-      {articles.map(a => (
+      {safeArticles.map(a => (
         <div key={a.id} className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 space-y-1.5">
