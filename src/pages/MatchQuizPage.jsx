@@ -206,7 +206,7 @@ export default function MatchQuizPage() {
     const budget = parseInt(ans.budget) || 800;
     const concern = ans.concern ? ans.concern.split(",") : [];
 
-    let scored = allTherapists.map(t => {
+    let scored = (allTherapists || []).map(t => {
       let score = 0;
       if (ans.preferred_gender !== "no_preference" && t.gender === ans.preferred_gender) score += 3;
       if (ans.preferred_format !== "no_preference" && t.formats?.includes(ans.preferred_format)) score += 2;
@@ -238,7 +238,7 @@ export default function MatchQuizPage() {
       hmo: ans.hmo,
       urgency: ans.urgency,
       age_group: ans.age_group,
-      recommended_therapist_ids: top.map(t => t.id),
+      recommended_therapist_ids: (top || []).map(t => t.id),
     });
     if (quizError) throw quizError;
 
@@ -276,7 +276,7 @@ export default function MatchQuizPage() {
         </div>
       </div>
       <div className="space-y-3">
-        {results.map((t, i) => (
+        {(results || []).map((t, i) => (
           <div key={t.id} className="relative">
             {i === 0 && (
               <div className="absolute -top-2 -right-2 z-10 bg-primary text-primary-foreground text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">

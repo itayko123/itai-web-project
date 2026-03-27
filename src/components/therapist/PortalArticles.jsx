@@ -86,7 +86,7 @@ export default function PortalArticles({ therapistId, therapistName }) {
       therapist_id: therapistId,
       therapist_name: therapistName,
       status: "pending",
-      read_time_minutes: Math.ceil(form.content.split(" ").length / 200),
+      read_time_minutes: Math.ceil((form.content || "").split(" ").length / 200),
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });

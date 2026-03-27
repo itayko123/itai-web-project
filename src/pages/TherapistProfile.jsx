@@ -220,7 +220,7 @@ export default function TherapistProfile() {
                 {therapist.languages?.length > 0 && (
                   <div className="flex items-center gap-1.5 mt-2">
                     <Languages className="w-4 h-4 text-primary" />
-                    <span className="text-sm text-muted-foreground">{therapist.languages.map(l => langLabels[l] || l).join(", ")}</span>
+                    <span className="text-sm text-muted-foreground">{(therapist.languages || []).map(l => langLabels[l] || l).join(", ")}</span>
                   </div>
                 )}
               </div>
@@ -252,7 +252,7 @@ export default function TherapistProfile() {
                 תחומי התמחות
               </h2>
               <div className="flex flex-wrap gap-2">
-                {therapist.specializations.map(s => (
+                {(therapist.specializations || []).map(s => (
                   <Badge key={s} variant="secondary" className="text-sm px-3 py-1">{specLabels[s] || s}</Badge>
                 ))}
               </div>
@@ -267,7 +267,7 @@ export default function TherapistProfile() {
                 שיטות וגישות טיפוליות
               </h2>
               <div className="flex flex-wrap gap-2">
-                {therapist.treatment_types.map(t => (
+                {(therapist.treatment_types || []).map(t => (
                   <Badge key={t} className="bg-accent text-accent-foreground text-sm px-3 py-1">{treatmentLabels[t] || t}</Badge>
                 ))}
               </div>
