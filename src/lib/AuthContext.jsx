@@ -82,12 +82,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // הוספנו פה משתנה שמקבל נתיב, עם ברירת מחדל של הפורטל
   const navigateToLogin = async () => {
+    // בודקים באיזה עמוד אנחנו נמצאים עכשיו
+    let targetPath = window.location.pathname;
+    
+    // אם המשתמש לחץ על התחברות מדף הבית הרגיל, נשלח אותו לפורטל
+    if (targetPath === '/') {
+      targetPath = '/therapist-portal';
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // התוספת שלנו: הוספנו את הנתיב לפורטל אחרי כתובת האתר
-        redirectTo: `${window.location.origin}/therapist-portal`
+        // מחזירים את המשתמש בדיוק לעמוד שהוא ניסה לגשת אליו!
+        redirectTo: `${window.location.origin}${targetPath}`
       }
     });
 
