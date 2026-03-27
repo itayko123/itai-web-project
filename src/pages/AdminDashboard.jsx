@@ -186,17 +186,17 @@ function TherapistRegistrations() {
       return data ?? [];
     },
   });
-
-  const approveMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase
-        .from("Therapist")
-        .update({ status: "approved", license_verified: true })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries(["admin-therapists"]); toast.success("מטפל אושר!"); },
-  });
+const approveMutation = useMutation({
+  mutationFn: async (id) => {
+    alert("מנסה לאשר מטפל עם איידי: " + id); // השורה הזו
+    const { error } = await supabase
+      .from("Therapist")
+      .update({ status: "approved", license_verified: true })
+      .eq("id", id);
+    if (error) throw error;
+  },
+  // ... שאר הקוד
+});
   const rejectMutation = useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase.from("Therapist").update({ status: "rejected" }).eq("id", id);
