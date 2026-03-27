@@ -188,7 +188,6 @@ function TherapistRegistrations() {
   });
 const approveMutation = useMutation({
   mutationFn: async (id) => {
-    alert("מנסה לאשר מטפל עם איידי: " + id); // השורה הזו
     const { error } = await supabase
       .from("Therapist")
       .update({ status: "approved", license_verified: true })
