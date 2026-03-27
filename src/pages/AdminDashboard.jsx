@@ -192,9 +192,15 @@ const approveMutation = useMutation({
       .from("Therapist")
       .update({ status: "approved", license_verified: true })
       .eq("id", id);
-    if (error) throw error;
+    if (error) {
+      alert("שגיאת Supabase: " + error.message); // זה יגיד לנו בדיוק מה חסר
+      throw error;
+    }
   },
-  // ... שאר הקוד
+  onSuccess: () => {
+    qc.invalidateQueries(["admin-therapists"]);
+    toast.success("מטפל אושר!");
+  },
 });
   const rejectMutation = useMutation({
     mutationFn: async (id) => {
