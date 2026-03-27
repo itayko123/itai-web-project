@@ -127,7 +127,7 @@ export default function RegisterTherapist() {
     const { error } = await supabase.from("Therapist").insert(therapistData);
     if (error) throw error;
     // Notify admin directly
-    await supabase.functions.invoke("notify-new-therapist", { body: therapistData });
+    //await supabase.functions.invoke("notify-new-therapist", { body: therapistData });
     setLoading(false);
     setSubmitted(true);
   };
