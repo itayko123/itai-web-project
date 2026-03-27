@@ -86,7 +86,8 @@ export const AuthProvider = ({ children }) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        // התוספת שלנו: הוספנו את הנתיב לפורטל אחרי כתובת האתר
+        redirectTo: `${window.location.origin}/therapist-portal`
       }
     });
 
