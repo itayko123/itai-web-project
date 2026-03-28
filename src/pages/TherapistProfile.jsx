@@ -39,29 +39,35 @@ function ContactForm({ therapist }) {
     );
   }
 
-  const mutation = useMutation({
+const mutation = useMutation({
     mutationFn: async () => {
-      const now = new Date();
-      const lead_month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      // יצרנו אובייקט נקי לשליחה
       const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         ...sanitizeFormData(form),
         contact_type: "message",
-        lead_month,
+        status: "pending", // <--- זה יסדר את הופעת הפנייה כ"חדשה" בפורטל
       });
+      
       if (contactError) throw contactError;
-      // Increment lead counter on therapist
+
+      // עדכון מונה הלידים
       const currentLeads = therapist.lead_count || 0;
       const { error: therapistError } = await supabase
         .from("Therapist")
         .update({ lead_count: currentLeads + 1 })
         .eq("id", therapist.id);
+        
       if (therapistError) throw therapistError;
     },
     onSuccess: () => {
       setSubmitted(true);
       toast.success("הפנייה נשלחה בהצלחה!");
     },
+    onError: (error) => {
+      console.error("Submission error:", error);
+      toast.error("שגיאה בשליחת הפנייה");
+    }
   });
 
   const handleSubmit = (e) => {
