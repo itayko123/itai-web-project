@@ -60,14 +60,14 @@ export default function TherapistPortal() {
 
   const therapist = therapistList[0];
 
-  const { data: requests = [] } = useQuery({
+const { data: requests = [] } = useQuery({
     queryKey: ["my-contact-requests", therapist?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ContactRequest")
         .select("*")
         .eq("therapist_id", therapist?.id)
-        .order("created_date", { ascending: false }) // תיקון: עבודה מול created_date בלבד
+        .order("created_date", { ascending: false }) // <--- השורה הזו שולטת בסדר!
         .limit(50);
       if (error) throw error;
       return data ?? [];
