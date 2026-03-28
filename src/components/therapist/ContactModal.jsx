@@ -17,22 +17,47 @@ export default function ContactModal({ therapist, open, onClose, type = "message
   const handleSubmit = async () => {
     if (!form.tos_accepted) { toast.error("יש לאשר את תנאי השימוש"); return; }
     if (!form.patient_name || !form.patient_email) { toast.error("יש למלא שם ואימייל"); return; }
+    
     setLoading(true);
-    const contactData = {
-      therapist_id: therapist.id,
-      ...form,
-      contact_type: type,
-      lead_month: new Date().toISOString().slice(0, 7),
-    };
-    const { error } = await supabase.from("ContactRequest").insert(contactData);
-    if (error) throw error;
-    // Notify admin and therapist directly
-    await supabase.functions.invoke("notify-new-contact", {
-      body: { ...contactData, therapist_name: therapist.full_name, therapist_email: therapist.email }
-    });
-    setLoading(false);
-    toast.success("הפנייה נשלחה בהצלחה!");
-    onClose();
+    
+    try {
+      const contactData = {
+        therapist_id: therapist?.id || null, // מוודא שזה עובד גם אם אין מטפל ספציפי
+        patient_name: form.patient_name,
+        patient_email: form.patient_email,
+        patient_phone: form.patient_phone,
+        message: form.message,
+        preferred_format: form.preferred_format,
+        tos_accepted: form.tos_accepted,
+        contact_type: type,
+        lead_month: new Date().toISOString().slice(0, 7),
+      };
+
+      // 1. שמירה בבסיס הנתונים (הדבר החשוב ביותר)
+      const { error } = await supabase.from("ContactRequest").insert(contactData);
+      
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw error;
+      }
+
+      // 2. הפעלת הפונקציה (בהערה זמנית כדי למנוע את שגיאת ה-CORS)
+      // אם תרצה להפעיל מתישהו את שליחת המיילים, תוריד את ה- // מהשורות הבאות:
+      /*
+      await supabase.functions.invoke("notify-new-contact", {
+        body: { ...contactData, therapist_name: therapist?.full_name, therapist_email: therapist?.email }
+      }).catch(err => console.log("Edge function warning (ignored):", err));
+      */
+
+      toast.success("הפנייה נשלחה בהצלחה!");
+      onClose();
+      
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      toast.error("אירעה שגיאה בשליחת הפנייה. נסה שוב מאוחר יותר.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
