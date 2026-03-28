@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,16 +14,16 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [tab, setTab] = useState(0);
 
- // הוא יאשר כניסה אם אתה אדמין ב-DB *או* אם זה האימייל הספציפי שלך
-if (user?.email !== "itaykorin@gmail.com") {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center px-4">
-      <ShieldAlert className="w-12 h-12 text-destructive" />
-      <h1 className="text-xl font-bold">אין גישה</h1>
-      <p className="text-muted-foreground text-sm">דף זה זמין למנהלים בלבד.</p>
-    </div>
-  );
-}
+  // מאפשר גישה אם המשתמש מוגדר כאדמין ב-DB, *או* אם זה האימייל הספציפי שלך
+  if (user?.role !== "admin" && user?.email !== "itaykorin@gmail.com") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center px-4">
+        <ShieldAlert className="w-12 h-12 text-destructive" />
+        <h1 className="text-xl font-bold">אין גישה</h1>
+        <p className="text-muted-foreground text-sm">דף זה זמין למנהלים בלבד.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -50,37 +50,21 @@ if (user?.email !== "itaykorin@gmail.com") {
 }
 
 function ContactRequests() {
+  const qc = useQueryClient();
+  
+  // שימוש ב-base44Client במקום supabase ישיר
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ["admin-contacts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ContactRequest")
-        .select("*")
-        .order("created_date", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => base44.entities.ContactRequest.list("-created_date", 200),
   });
+  
   const { data: therapists = [] } = useQuery({
     queryKey: ["admin-all-therapists"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("Therapist")
-        .select("*")
-        .eq("status", "approved")
-        .order("created_date", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => base44.entities.Therapist.filter({ status: "approved" }, "-created_date", 200),
   });
-  const qc = useQueryClient();
+
   const markViewed = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("ContactRequest").update({ status: "viewed" }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id) => base44.entities.ContactRequest.update(id, { status: "viewed" }),
     onSuccess: () => qc.invalidateQueries(["admin-contacts"]),
   });
 
@@ -96,6 +80,7 @@ function ContactRequests() {
     acc[r.therapist_id] = (acc[r.therapist_id] || 0) + 1;
     return acc;
   }, {});
+  
   const monthlyLeads = safeRequests.reduce((acc, r) => {
     const month = r.lead_month || r.created_date?.slice(0, 7) || "?";
     if (!acc[r.therapist_id]) acc[r.therapist_id] = {};
@@ -175,38 +160,26 @@ function TherapistRegistrations() {
   const qc = useQueryClient();
   const { data: therapists = [], isLoading } = useQuery({
     queryKey: ["admin-therapists"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("Therapist")
-        .select("*")
-        .eq("status", "pending")
-        .order("created_date", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
+    queryFn: () => base44.entities.Therapist.filter({ status: "pending" }, "-created_date", 50),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (id) => {
+      try {
+        return await base44.entities.Therapist.update(id, { status: "approved", license_verified: true });
+      } catch (error) {
+        alert("שגיאת שרת: " + error.message);
+        throw error;
+      }
+    },
+    onSuccess: () => { 
+      qc.invalidateQueries(["admin-therapists"]); 
+      toast.success("מטפל אושר!"); 
     },
   });
-const approveMutation = useMutation({
-  mutationFn: async (id) => {
-    const { error } = await supabase
-      .from("Therapist")
-      .update({ status: "approved", license_verified: true })
-      .eq("id", id);
-    if (error) {
-      alert("שגיאת Supabase: " + error.message); // זה יגיד לנו בדיוק מה חסר
-      throw error;
-    }
-  },
-  onSuccess: () => {
-    qc.invalidateQueries(["admin-therapists"]);
-    toast.success("מטפל אושר!");
-  },
-});
+
   const rejectMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("Therapist").update({ status: "rejected" }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id) => base44.entities.Therapist.update(id, { status: "rejected" }),
     onSuccess: () => { qc.invalidateQueries(["admin-therapists"]); toast.success("מטפל נדחה"); },
   });
 
@@ -265,30 +238,16 @@ function PendingArticles() {
   const qc = useQueryClient();
   const { data: articles = [], isLoading } = useQuery({
     queryKey: ["admin-articles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("Article")
-        .select("*")
-        .eq("status", "pending")
-        .order("created_date", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => base44.entities.Article.filter({ status: "pending" }, "-created_date", 50),
   });
 
   const approveMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("Article").update({ status: "published" }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id) => base44.entities.Article.update(id, { status: "published" }),
     onSuccess: () => { qc.invalidateQueries(["admin-articles"]); toast.success("מאמר פורסם!"); },
   });
+  
   const rejectMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("Article").update({ status: "rejected" }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id) => base44.entities.Article.update(id, { status: "rejected" }),
     onSuccess: () => { qc.invalidateQueries(["admin-articles"]); toast.success("מאמר נדחה"); },
   });
 

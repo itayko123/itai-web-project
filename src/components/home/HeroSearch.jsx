@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MapPin, Sparkles, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import { Search, MapPin, Sparkles, ChevronDown, ChevronUp, SlidersHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/lib/LanguageContext";
 import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
@@ -20,6 +21,7 @@ export default function HeroSearch() {
   const [treatment, setTreatment] = useState("");
   const [immediate, setImmediate] = useState(false);
   const [showAllFilters, setShowAllFilters] = useState(false);
+  const [nameSearch, setNameSearch] = useState(""); // הסטייט החדש לחיפוש שם
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -32,10 +34,11 @@ export default function HeroSearch() {
     if (gender) params.set("gender", gender);
     if (treatment) params.set("treatment_method", treatment);
     if (immediate) params.set("immediate", "true");
+    if (nameSearch.trim()) params.set("name", nameSearch.trim()); // העברת השם ל-URL
     navigate(`/therapists?${params.toString()}`);
   };
 
-  // Safe variables with fallbacks to prevent crashes
+  // Safe variables with fallbacks to prevent crashes (שמרנו על זה כדי למנוע קריסות!)
   const safeSearchTitle = t.searchTitle || "מצא את המטפל המתאים לך";
   const titleWords = safeSearchTitle.split(" ");
   const titlePart1 = titleWords.slice(0, 3).join(" ");
@@ -61,6 +64,18 @@ export default function HeroSearch() {
         <p className="text-lg mb-4 max-w-xl mx-auto" style={{ color: '#374151' }}>{t.searchSubtitle}</p>
         <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 text-sm font-bold px-4 py-2 rounded-full mb-8">
           {t.free}
+        </div>
+
+        {/* Name search - שדה החיפוש החדש */}
+        <div className="relative max-w-sm mx-auto w-full mb-3">
+          <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Input
+            value={nameSearch}
+            onChange={e => setNameSearch(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSearch()}
+            placeholder="חיפוש לפי שם מטפל..."
+            className="pr-9 h-11 rounded-xl bg-white text-sm border-border"
+          />
         </div>
 
         {/* Main search row */}
