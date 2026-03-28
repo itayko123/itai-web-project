@@ -68,7 +68,9 @@ export default function TherapistPortal() {
 
   const therapist = therapistList[0];
 
-  const { data: requests = [] } = useQuery({
+  const [requests, setRequests] = useState([]);
+
+  useQuery({
     queryKey: ["my-contact-requests", therapist?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -85,8 +87,10 @@ export default function TherapistPortal() {
           .eq("therapist_id", therapist?.id)
           .order("created_date", { ascending: false });
         if (errorAlt) throw errorAlt;
+        setRequests(dataAlt ?? []);
         return dataAlt ?? [];
       }
+      setRequests(data ?? []);
       return data ?? [];
     },
     enabled: !!therapist?.id,
@@ -105,30 +109,23 @@ export default function TherapistPortal() {
     onError: () => toast.error("שגיאה בעדכון הפרופיל"),
   });
 
-  const markResponded = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase
-        .from("ContactRequest")
-        .update({ status: "responded" })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: ["my-contact-requests", therapist?.id] });
-      qc.setQueryData(["my-contact-requests", therapist?.id], (old) =>
-        old?.map(r => r.id === id ? { ...r, status: "responded" } : r) ?? []
-      );
-    },
-    onSuccess: () => {
-      toast.success("הפנייה סומנה כטופלה!");
-      qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
-    },
-    onError: (err) => {
-      console.error("Update request error:", err);
+  const markResponded = async (id) => {
+    // Instantly update UI
+    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "responded" } : r));
+    // Persist to DB
+    const { error } = await supabase
+      .from("ContactRequest")
+      .update({ status: "responded" })
+      .eq("id", id);
+    if (error) {
+      // Revert on failure
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "pending" } : r));
+      console.error("Update request error:", error);
       toast.error("העדכון נכשל! בדוק את הרשאות ה-RLS במסד הנתונים.");
-      qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
-    },
-  });
+    } else {
+      toast.success("הפנייה סומנה כטופלה!");
+    }
+  };
 
   if (!user) {
     return (
@@ -325,8 +322,8 @@ export default function TherapistPortal() {
                     {r.preferred_format && <p className="text-xs text-muted-foreground">פורמט: {r.preferred_format}</p>}
                     <p className="text-xs text-muted-foreground">{formatDate(r)}</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => markResponded.mutate(r.id)} disabled={markResponded.isPending}>
-                    {markResponded.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "סמן כטופל"}
+                  <Button size="sm" variant="outline" onClick={() => markResponded(r.id)}>
+                    סמן כטופל
                   </Button>
                 </div>
               </div>
