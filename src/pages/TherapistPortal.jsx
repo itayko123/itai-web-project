@@ -33,6 +33,13 @@ const checkboxGroup = (label, items, selected, setSelected) => (
   </div>
 );
 
+const formatDate = (r) => {
+  const raw = r.created_at ?? r.created_date ?? r.createdAt ?? r.date;
+  if (!raw) return "תאריך לא זמין";
+  const d = new Date(raw);
+  return isNaN(d) ? "תאריך לא זמין" : d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
+
 export default function TherapistPortal() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -68,11 +75,10 @@ export default function TherapistPortal() {
         .from("ContactRequest")
         .select("*")
         .eq("therapist_id", therapist?.id)
-        .order("created_at", { ascending: false }) // שינוי ל-created_at כסטנדרט
+        .order("created_at", { ascending: false })
         .limit(50);
-      
+
       if (error) {
-        // ניסיון fallback לעמודה בשם אחר אם הדירוג נכשל
         const { data: dataAlt, error: errorAlt } = await supabase
           .from("ContactRequest")
           .select("*")
@@ -107,6 +113,12 @@ export default function TherapistPortal() {
         .eq("id", id);
       if (error) throw error;
     },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["my-contact-requests", therapist?.id] });
+      qc.setQueryData(["my-contact-requests", therapist?.id], (old) =>
+        old?.map(r => r.id === id ? { ...r, status: "responded" } : r) ?? []
+      );
+    },
     onSuccess: () => {
       toast.success("הפנייה סומנה כטופלה!");
       qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
@@ -114,6 +126,7 @@ export default function TherapistPortal() {
     onError: (err) => {
       console.error("Update request error:", err);
       toast.error("העדכון נכשל! בדוק את הרשאות ה-RLS במסד הנתונים.");
+      qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
     },
   });
 
@@ -272,42 +285,53 @@ export default function TherapistPortal() {
       {tab === 0 && (
         <div className="space-y-3">
           {requests.length === 0 && <p className="text-center py-12 text-muted-foreground text-sm">אין פניות עדיין</p>}
-          {requests.map(r => (
-            <div key={r.id} className={`bg-card border rounded-xl p-4 ${(!r.status || r.status === "pending") ? "border-primary/30" : "border-border"}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">{r.patient_name}</span>
-                    <Badge variant={r.status === "responded" ? "secondary" : "default"} className="text-xs">
-                      {r.status === "responded" ? "טופל" : r.status === "viewed" ? "נצפה" : "חדש"}
-                    </Badge>
+          {requests.map(r => {
+            const isResponded = r.status === "responded";
+
+            if (isResponded) {
+              return (
+                <div key={r.id} className="bg-muted/30 border border-border rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 opacity-60">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-sm font-medium truncate">{r.patient_name}</span>
+                    {r.patient_phone && <span className="text-xs text-muted-foreground">{r.patient_phone}</span>}
                   </div>
-                  {r.patient_phone && (
-                    <a href={`tel:${r.patient_phone}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
-                      <Phone className="w-3 h-3" /> {r.patient_phone}
-                    </a>
-                  )}
-                  {r.patient_email && (
-                    <a href={`mailto:${r.patient_email}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
-                      <Mail className="w-3 h-3" /> {r.patient_email}
-                    </a>
-                  )}
-                  {r.message && <p className="text-sm bg-muted/40 rounded-lg p-2 mt-1">{r.message}</p>}
-                  {r.preferred_format && <p className="text-xs text-muted-foreground">פורמט: {r.preferred_format}</p>}
-                  <p className="text-xs text-muted-foreground">
-                    {r.created_at || r.created_date 
-                      ? new Date(r.created_at || r.created_date).toLocaleDateString("he-IL") 
-                      : "תאריך לא זמין"}
-                  </p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs text-muted-foreground">{formatDate(r)}</span>
+                    <Badge variant="secondary" className="text-xs">טופל</Badge>
+                  </div>
                 </div>
-                {r.status !== "responded" && (
+              );
+            }
+
+            return (
+              <div key={r.id} className="bg-card border border-primary/30 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{r.patient_name}</span>
+                      <Badge variant="default" className="text-xs">חדש</Badge>
+                    </div>
+                    {r.patient_phone && (
+                      <a href={`tel:${r.patient_phone}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                        <Phone className="w-3 h-3" /> {r.patient_phone}
+                      </a>
+                    )}
+                    {r.patient_email && (
+                      <a href={`mailto:${r.patient_email}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                        <Mail className="w-3 h-3" /> {r.patient_email}
+                      </a>
+                    )}
+                    {r.message && <p className="text-sm bg-muted/40 rounded-lg p-2 mt-1">{r.message}</p>}
+                    {r.preferred_format && <p className="text-xs text-muted-foreground">פורמט: {r.preferred_format}</p>}
+                    <p className="text-xs text-muted-foreground">{formatDate(r)}</p>
+                  </div>
                   <Button size="sm" variant="outline" onClick={() => markResponded.mutate(r.id)} disabled={markResponded.isPending}>
                     {markResponded.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "סמן כטופל"}
                   </Button>
-                )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
