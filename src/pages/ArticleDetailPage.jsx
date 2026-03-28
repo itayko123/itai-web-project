@@ -25,22 +25,33 @@ export default function ArticleDetailPage() {
 
   const { data: article, isLoading } = useQuery({
     queryKey: ["article", id],
+    // חשוב: אנחנו מוודאים שיש id לפני שמריצים את הבקשה
+    enabled: !!id, 
     queryFn: async () => {
-      const { data, error } = await supabase.from("Article").select("*").eq("id", id).limit(1);
-      if (error) throw error;
-      const found = data?.[0];
-      if (found) {
-        // Increment view count
+      const { data, error } = await supabase
+        .from("Article")
+        .select("*")
+        .eq("id", id)
+        .single(); // במקום limit וחיפוש מערך, single מביא אובייקט אחד מדויק
+
+      if (error) {
+        console.error("Supabase Error:", error);
+        throw error;
+      }
+      
+      // הוספנו כאן את עדכון הצפיות רק אם המאמר נמצא
+      if (data) {
         supabase
           .from("Article")
-          .update({ view_count: (found.view_count || 0) + 1 })
-          .eq("id", found.id)
-          .catch(() => {});
+          .update({ view_count: (data.view_count || 0) + 1 })
+          .eq("id", data.id)
+          .then(() => console.log("View count updated"))
+          .catch((err) => console.error("Error updating view count:", err));
       }
-      return found;
+
+      return data;
     },
   });
-
   const { data: therapistList = [] } = useQuery({
     queryKey: ["article-author", article?.therapist_id],
     queryFn: async () => {
