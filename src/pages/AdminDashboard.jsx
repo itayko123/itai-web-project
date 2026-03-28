@@ -8,7 +8,8 @@ import { Check, X, Mail, Phone, Loader2, ShieldAlert, BookOpen, MessageSquare, E
 import { toast } from "sonner";
 import TherapistManagement from "@/components/admin/TherapistManagement";
 
-const TABS = ["מאמרים ממתינים", "פניות מטופלים", "הרשמות מטפלים", "ניהול מטפלים"];
+// 1. שינינו חזרה את שם הטאב לסטטיסטיקה בלבד
+const TABS = ["מאמרים ממתינים", "סטטיסטיקת פניות", "הרשמות מטפלים", "ניהול מטפלים"];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -77,15 +78,6 @@ function ContactRequests() {
     },
   });
 
-  const qc = useQueryClient();
-  const markViewed = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from("ContactRequest").update({ status: "viewed" }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries(["admin-contacts"]),
-  });
-
   // הבטחה שתמיד יש מערך כדי למנוע קריסות
   const safeRequests = requests || [];
   const safeTherapists = therapists || [];
@@ -106,12 +98,15 @@ function ContactRequests() {
     return acc;
   }, {});
 
-  const therapistMap = Object.fromEntries(safeTherapists.map(t => [t.id, t.full_name]));
-
   if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6">
+      {/* 2. החזרנו את הודעת האזהרה */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 font-medium">
+        ⚠️ תוכן הפניות (הודעות מטופלים) הוא פרטי ומוצג למטפלים בלבד. כאן מוצגת סטטיסטיקה בלבד.
+      </div>
+
       {safeTherapists.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-5">
           <h2 className="font-bold text-sm mb-4 flex items-center gap-2">
@@ -137,39 +132,8 @@ function ContactRequests() {
         </div>
       )}
 
-      {safeRequests.length === 0 ? <EmptyState text="אין פניות עדיין" /> : (
-        <div className="space-y-3">
-          {safeRequests.map(r => (
-            <div key={r.id} className={`bg-card border rounded-xl p-4 ${r.status === "pending" ? "border-primary/40" : "border-border"}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{r.patient_name}</span>
-                    <Badge variant={r.status === "pending" ? "default" : "secondary"} className="text-xs">
-                      {r.status === "pending" ? "חדש" : r.status === "viewed" ? "נצפה" : "הגיב"}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">→ {therapistMap[r.therapist_id] || r.therapist_id}</span>
-                  </div>
-                  {r.patient_email && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Mail className="w-3 h-3" /> {r.patient_email}
-                    </div>
-                  )}
-                  {r.patient_phone && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Phone className="w-3 h-3" /> {r.patient_phone}
-                    </div>
-                  )}
-                  {r.message && <p className="text-sm mt-1 bg-muted/50 rounded-lg p-2">{r.message}</p>}
-                </div>
-                {r.status === "pending" && (
-                  <Button size="sm" variant="outline" onClick={() => markViewed.mutate(r.id)}>סמן כנצפה</Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* 3. מחקנו לחלוטין את החלק שמציג את הודעות המטופלים */}
+      {safeTherapists.length === 0 && <EmptyState text="אין נתוני פניות עדיין" />}
     </div>
   );
 }

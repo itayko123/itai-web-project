@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import TherapistCard from "@/components/therapist/TherapistCard";
 import FilterPanel from "@/components/therapist/FilterPanel";
-import { SlidersHorizontal, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { SlidersHorizontal, Loader2, ChevronRight, ChevronLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const defaultFilters = { profession: "all", city: "all", format: "all", hmo: "all", gender: "all", maxPrice: 800, immediate: false, specialization: "all", treatment_method: "all", language: "all" };
@@ -25,6 +26,8 @@ export default function TherapistSearch() {
     immediate: urlParams.get("immediate") === "true",
   });
 
+  // הנה הסטייט של החיפוש לפי שם שחזר! הוא גם מושך מידע מה-URL אם הגענו מדף הבית
+  const [nameSearch, setNameSearch] = useState(urlParams.get("name") || "");
   const [page, setPage] = useState(1);
 
   const { data: therapists = [], isLoading } = useQuery({
@@ -53,8 +56,15 @@ export default function TherapistSearch() {
     if (filters.specialization !== "all" && !t.specializations?.includes(filters.specialization)) return false;
     if (filters.treatment_method !== "all" && !t.treatment_types?.includes(filters.treatment_method)) return false;
     if (filters.language !== "all" && !t.languages?.includes(filters.language)) return false;
+    
+    // הנה הסינון לפי שם שחזר לעבוד!
+    if (nameSearch.trim()) {
+      const q = nameSearch.trim().toLowerCase();
+      if (!(t.full_name || "").toLowerCase().includes(q)) return false;
+    }
+    
     return true;
-  }), [therapists, filters]);
+  }), [therapists, filters, nameSearch]); // חשוב: הוספנו את nameSearch לתלויות כאן
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -71,13 +81,25 @@ export default function TherapistSearch() {
           <h1 className="text-2xl font-bold">מצא מטפל</h1>
           <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">✅ חינמי למטופלים</span>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">{filtered.length} מטפלים נמצאו</p>
+        
+        {/* הנה שורת החיפוש שהוספנו חזרה מעל כמות התוצאות */}
+        <div className="relative mt-3 max-w-sm">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={nameSearch}
+            onChange={e => { setNameSearch(e.target.value); setPage(1); }}
+            placeholder="חיפוש לפי שם מטפל..."
+            className="pr-9 h-10 text-sm"
+          />
+        </div>
+        
+        <p className="text-sm text-muted-foreground mt-2">{filtered.length} מטפלים נמצאו</p>
       </div>
 
       <div className="flex gap-6">
         {/* Desktop filter sidebar */}
         <aside className="hidden lg:block w-64 flex-shrink-0" aria-label="פילטרים">
-          <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); }} />
+          <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
         </aside>
 
         <div className="flex-1 min-w-0">
@@ -92,7 +114,7 @@ export default function TherapistSearch() {
               </SheetTrigger>
               <SheetContent side="right" className="w-80 overflow-y-auto" dir="rtl">
                 <div className="pt-6 pb-10">
-                  <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); }} />
+                  <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
                 </div>
               </SheetContent>
             </Sheet>
@@ -105,7 +127,7 @@ export default function TherapistSearch() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <p className="text-lg font-medium mb-2">לא נמצאו מטפלים</p>
-              <p className="text-sm">נסה לשנות את הסינון</p>
+              <p className="text-sm">נסה לשנות את הסינון או החיפוש</p>
             </div>
           ) : (
             <>
