@@ -93,45 +93,38 @@ export default function TherapistPortal() {
     mutationFn: async (id) => {
       const { data, error } = await supabase
         .from('ContactRequest')
-        .update({ status: 'pending' }) // תשנה לסטטוס ההתחלתי שלך אם הוא נקרא אחרת
+        .update({ status: 'pending' }) 
         .eq('id', id);
         
       if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
-      // כאן נרענן את הנתונים כדי שהמסך יתעדכן
+      // תיקון: השתמשנו ב-qc וב-queryKey הנכון
       qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
+      toast.success("פעולת העדכון בוטלה");
     }
   });
 
   const markResponded = useMutation({
     mutationFn: async (id) => {
-      // 1. בודקים איזה מזהה אנחנו בכלל שולחים ל-Supabase
-      console.log("🚀 מנסה לעדכן פנייה עם המזהה:", id); 
-
       const { data, error } = await supabase
         .from("ContactRequest")
         .update({ status: "responded" })
         .eq("id", id)
-        .select(); // מכריח אותו להחזיר את מה שעודכן
-
-      // 2. בודקים מה חזר
-      console.log("📦 תוצאת העדכון:", data);
+        .select(); 
 
       if (error) throw error;
-      
-      // אם הדאטה ריק - סימן ש-Supabase לא מצא את השורה!
       if (!data || data.length === 0) {
         throw new Error("לא נמצאה שורה לעדכון במסד הנתונים!");
       }
-      return id; // מחזירים את ה-id כדי להשתמש בו ב-onSuccess
+      return id; 
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
       
-      // הקפצת חלונית sonner עם כפתור ביטול
-      toast('הפנייה סומנה כטופלה', {
+      // שיניתי ל-toast.success כדי שזה יהיה בולט
+      toast.success('הפנייה סומנה כטופלה', {
         action: {
           label: 'ביטול',
           onClick: () => undoResponded.mutate(id)

@@ -1,4 +1,6 @@
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster as ShadcnToaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from 'sonner'; // שינינו את השמות כדי שלא יתנגשו!
+
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -21,7 +23,7 @@ import TherapistPortal from './pages/TherapistPortal';
 import HowItWorksPage from './pages/HowItWorksPage';
 import ArticlesPage from './pages/ArticlesPage';
 import SupportDeclarationPage from './pages/SupportDeclarationPage';
-import AccessibilityPage from './pages/AccessibilityPage'; // וודא שהנתיב מדויק אצלך
+import AccessibilityPage from './pages/AccessibilityPage'; 
 import ArticleDetailPage from './pages/ArticleDetailPage';
 import CookiePolicyPage from './pages/CookiePolicyPage';
 import CookieConsent from './components/CookieConsent';
@@ -112,7 +114,11 @@ function App() {
             <AuthenticatedApp />
             <CookieConsent />
           </Router>
-          <Toaster />
+          
+          {/* הנה שני ה-Toasters שלנו יושבים יחד בשלום! */}
+          <ShadcnToaster />
+          <SonnerToaster position="bottom-right" richColors />
+          
         </QueryClientProvider>
       </LanguageProvider>
     </AuthProvider>
