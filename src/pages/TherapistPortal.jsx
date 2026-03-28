@@ -88,13 +88,26 @@ export default function TherapistPortal() {
     onError: () => toast.error("שגיאה בעדכון הפרופיל"),
   });
 
-  const markResponded = useMutation({
+const markResponded = useMutation({
     mutationFn: async (id) => {
-      const { error } = await supabase
+      // 1. בודקים איזה מזהה אנחנו בכלל שולחים ל-Supabase
+      console.log("🚀 מנסה לעדכן פנייה עם המזהה:", id); 
+
+      const { data, error } = await supabase
         .from("ContactRequest")
         .update({ status: "responded" })
-        .eq("id", id);
+        .eq("id", id)
+        .select(); // מכריח אותו להחזיר את מה שעודכן
+
+      // 2. בודקים מה חזר
+      console.log("📦 תוצאת העדכון:", data);
+
       if (error) throw error;
+      
+      // אם הדאטה ריק - סימן ש-Supabase לא מצא את השורה!
+      if (!data || data.length === 0) {
+        throw new Error("לא נמצאה שורה לעדכון במסד הנתונים!");
+      }
     },
     onSuccess: () => {
       toast.success("הפנייה סומנה כטופלה!");
@@ -102,7 +115,7 @@ export default function TherapistPortal() {
     },
     onError: (err) => {
       console.error(err);
-      toast.error("העדכון נכשל!");
+      toast.error("שגיאה: " + err.message);
     },
   });
 
