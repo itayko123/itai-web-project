@@ -14,19 +14,49 @@ export default function ContactPage() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await supabase.functions.invoke("notify-new-contact", {
-      body: {
+
+    try {
+      // 1. שמירה בטבלת ContactRequest ב-Supabase
+      const { error } = await supabase.from("ContactRequest").insert({
         patient_name: form.name,
         patient_email: form.email,
         message: `נושא: ${form.subject}\n\n${form.message}`,
-        therapist_name: "צוות האתר (פנייה כללית)",
+        contact_type: "general", // מסמן שזו פנייה כללית לאתר
+        therapist_id: null,      // אין מטפל ספציפי
+        lead_month: new Date().toISOString().slice(0, 7)
+      });
+
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw error;
       }
-    });
-    setLoading(false);
-    setSent(true);
+
+      // 2. הפעלת הפונקציה לשליחת מייל (מוסתרת כרגע בהערה כדי למנוע את השגיאה)
+      /*
+      await supabase.functions.invoke("notify-new-contact", {
+        body: {
+          patient_name: form.name,
+          patient_email: form.email,
+          message: `נושא: ${form.subject}\n\n${form.message}`,
+          therapist_name: "צוות האתר (פנייה כללית)",
+        }
+      });
+      */
+
+      setSent(true);
+      // איפוס הטופס
+      setForm({ name: "", email: "", subject: "", message: "" });
+      
+    } catch (err) {
+      console.error("Error submitting general contact form:", err);
+      // כאן אפשר להוסיף הודעת שגיאה למשתמש (toast.error) אם אתה משתמש ב-Sonner כמו בקומפוננטה הקודמת
+      alert("אירעה שגיאה בשליחת הפנייה. נסה שוב מאוחר יותר.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
