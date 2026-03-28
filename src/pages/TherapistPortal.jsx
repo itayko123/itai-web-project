@@ -91,10 +91,23 @@ export default function TherapistPortal() {
 
   const markResponded = useMutation({
     mutationFn: async (id) => {
-      const { error } = await supabase.from("ContactRequest").update({ status: "responded" }).eq("id", id);
+      const { data, error } = await supabase
+        .from("ContactRequest")
+        .update({ status: "responded" })
+        .eq("id", id)
+        .select(); // מוסיפים select כדי לוודא שחזר מידע
+
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-contact-requests"] }),
+    onSuccess: () => {
+      toast.success("הפנייה סומנה כטופלה!");
+      qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
+    },
+    onError: (err) => {
+      console.error("Update request error:", err);
+      toast.error("העדכון נכשל! בדוק את הרשאות ה-RLS במסד הנתונים.");
+    },
   });
 
   if (!user) {
@@ -274,7 +287,11 @@ export default function TherapistPortal() {
                   )}
                   {r.message && <p className="text-sm bg-muted/40 rounded-lg p-2 mt-1">{r.message}</p>}
                   {r.preferred_format && <p className="text-xs text-muted-foreground">פורמט: {r.preferred_format}</p>}
-                  <p className="text-xs text-muted-foreground">{new Date(r.created_date).toLocaleDateString("he-IL")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.created_at || r.created_date 
+                      ? new Date(r.created_at || r.created_date).toLocaleDateString("he-IL") 
+                      : "תאריך לא זמין"}
+                  </p>
                 </div>
                 {r.status !== "responded" && (
                   <Button size="sm" variant="outline" onClick={() => markResponded.mutate(r.id)}>סמן כטופל</Button>
