@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase"; // שומרים על החיבור התקין שלך
 import { Link } from "react-router-dom";
 import { Clock, BookOpen, User, Loader2, Search, ChevronLeft, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +44,15 @@ export default function ArticlesPage() {
   });
 
   const filtered = articles.filter(a => {
-    const matchCat = selectedCat === "all" || a.category === selectedCat;
-    const matchSearch = !search || a.title?.toLowerCase().includes(search.toLowerCase()) || a.excerpt?.toLowerCase().includes(search.toLowerCase());
+    const cat = (a.category || "").trim().toLowerCase();
+    const sel = selectedCat.trim().toLowerCase();
+    const matchCat = sel === "all" || cat === sel;
+    const q = search.trim().toLowerCase();
+    const matchSearch = !q ||
+      (a.title || "").toLowerCase().includes(q) ||
+      (a.excerpt || "").toLowerCase().includes(q) ||
+      (a.content || "").toLowerCase().includes(q) ||
+      (a.therapist_name || "").toLowerCase().includes(q);
     return matchCat && matchSearch;
   });
 
@@ -68,7 +75,6 @@ export default function ArticlesPage() {
             {t.articlesSubtitle}
           </p>
 
-          {/* Search */}
           <div className="relative max-w-md mx-auto">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -172,8 +178,8 @@ export default function ArticlesPage() {
           </div>
         )}
 
-        {/* Article grid */}
-        {rest.length > 0 && (
+        {/* Article grid - התיקון החדש של BASE44 כאן */}
+        {filtered.length > 0 && (
           <div>
             {!search && selectedCat === "all" && (
               <h2 className="font-bold text-sm text-muted-foreground uppercase tracking-wide mb-4">{t.articlesAll2}</h2>
