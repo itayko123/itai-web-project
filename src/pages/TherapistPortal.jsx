@@ -91,23 +91,10 @@ export default function TherapistPortal() {
 
   const markResponded = useMutation({
     mutationFn: async (id) => {
-      const { data, error } = await supabase
-        .from("ContactRequest")
-        .update({ status: "responded" })
-        .eq("id", id)
-        .select(); 
-
+      const { error } = await supabase.from("ContactRequest").update({ status: "responded" }).eq("id", id);
       if (error) throw error;
-      return data;
     },
-    onSuccess: () => {
-      toast.success("הפנייה סומנה כטופלה!");
-      qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
-    },
-    onError: (err) => {
-      console.error("Update request error:", err);
-      toast.error("העדכון נכשל! בדוק את הרשאות ה-RLS במסד הנתונים.");
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-contact-requests"] }),
   });
 
   if (!user) {
@@ -176,32 +163,22 @@ export default function TherapistPortal() {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
-    try {
-      const fileUrl = await uploadTherapistFile(file, "photos");
-      await supabase.from("Therapist").update({ photo_url: fileUrl }).eq("id", therapist.id);
-      qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
-      toast.success("תמונת הפרופיל עודכנה");
-    } catch (err) {
-      toast.error("שגיאה בהעלאת התמונה");
-    } finally {
-      setUploadingPhoto(false);
-    }
+    const fileUrl = await uploadTherapistFile(file, "photos");
+    await supabase.from("Therapist").update({ photo_url: fileUrl }).eq("id", therapist.id);
+    qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
+    toast.success("תמונת הפרופיל עודכנה");
+    setUploadingPhoto(false);
   };
 
   const handleLicenseUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingLicense(true);
-    try {
-      const fileUrl = await uploadTherapistFile(file, "licenses");
-      await supabase.from("Therapist").update({ license_document_url: fileUrl }).eq("id", therapist.id);
-      qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
-      toast.success("מסמך הרישיון הועלה בהצלחה. הצוות שלנו יאמת אותו בקרוב.");
-    } catch (err) {
-      toast.error("שגיאה בהעלאת המסמך");
-    } finally {
-      setUploadingLicense(false);
-    }
+    const fileUrl = await uploadTherapistFile(file, "licenses");
+    await supabase.from("Therapist").update({ license_document_url: fileUrl }).eq("id", therapist.id);
+    qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
+    toast.success("מסמך הרישיון הועלה בהצלחה. הצוות שלנו יאמת אותו בקרוב.");
+    setUploadingLicense(false);
   };
 
   const tabs = ["פניות מטופלים", "פרטי פרופיל", "המאמרים שלי"];
