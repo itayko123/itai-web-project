@@ -67,10 +67,19 @@ const { data: requests = [] } = useQuery({
         .from("ContactRequest")
         .select("*")
         .eq("therapist_id", therapist?.id)
-        .order("created_date", { ascending: false }) // <--- השורה הזו שולטת בסדר!
+        // אנחנו עדיין מבקשים מ-Supabase לסדר, למקרה שזה יעבוד
+        .order("created_date", { ascending: false }) 
         .limit(50);
+        
       if (error) throw error;
-      return data ?? [];
+      
+      // הנה הקסם: סידור כפוי ב-JavaScript מהחדש לישן!
+      const sortedData = (data || []).sort((a, b) => {
+        // הופכים את התאריכים לזמן אמיתי ומחסרים ביניהם כדי לסדר
+        return new Date(b.created_date) - new Date(a.created_date);
+      });
+      
+      return sortedData;
     },
     enabled: !!therapist?.id,
   });
