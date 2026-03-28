@@ -88,7 +88,24 @@ export default function TherapistPortal() {
     onError: () => toast.error("שגיאה בעדכון הפרופיל"),
   });
 
-const markResponded = useMutation({
+  // פונקציה שמחזירה את הסטטוס למצב הקודם
+  const undoResponded = useMutation({
+    mutationFn: async (id) => {
+      const { data, error } = await supabase
+        .from('ContactRequest')
+        .update({ status: 'pending' }) // תשנה לסטטוס ההתחלתי שלך אם הוא נקרא אחרת
+        .eq('id', id);
+        
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      // כאן נרענן את הנתונים כדי שהמסך יתעדכן
+      qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
+    }
+  });
+
+  const markResponded = useMutation({
     mutationFn: async (id) => {
       // 1. בודקים איזה מזהה אנחנו בכלל שולחים ל-Supabase
       console.log("🚀 מנסה לעדכן פנייה עם המזהה:", id); 
@@ -108,10 +125,19 @@ const markResponded = useMutation({
       if (!data || data.length === 0) {
         throw new Error("לא נמצאה שורה לעדכון במסד הנתונים!");
       }
+      return id; // מחזירים את ה-id כדי להשתמש בו ב-onSuccess
     },
-    onSuccess: () => {
-      toast.success("הפנייה סומנה כטופלה!");
+    onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
+      
+      // הקפצת חלונית sonner עם כפתור ביטול
+      toast('הפנייה סומנה כטופלה', {
+        action: {
+          label: 'ביטול',
+          onClick: () => undoResponded.mutate(id)
+        },
+        duration: 5000,
+      });
     },
     onError: (err) => {
       console.error(err);
