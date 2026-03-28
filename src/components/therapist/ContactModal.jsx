@@ -21,36 +21,43 @@ export default function ContactModal({ therapist, open, onClose, type = "message
     setLoading(true);
     
     try {
+      // יצירת תאריך ושעה קריאים וברורים בעברית
+      const now = new Date();
+      const readableDate = now.toLocaleDateString('he-IL') + " בשעה " + now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+
+      // שילוב התאריך בתוך ההודעה עצמה כדי להבטיח שזה יופיע במייל
+      const messageWithDate = `[הפנייה נשלחה בתאריך: ${readableDate}]\n\n${form.message ? "הודעה מהמטופל:\n" + form.message : "הפנייה התקבלה ללא הודעת טקסט."}`;
+
       const contactData = {
         therapist_id: therapist.id,
-        created_at: new Date().toISOString(),
+        created_at: now.toISOString(),
+        date: readableDate, // הוספנו שדה date ספציפי למקרה שהפונקציה מחפשת אותו
         patient_name: form.patient_name,
         patient_email: form.patient_email,
-        patient_phone: form.patient_phone,
-        message: form.message,
-        preferred_format: form.preferred_format,
+        patient_phone: form.patient_phone || "לא הוזן טלפון", // מונע ערך ריק
+        message: messageWithDate, // שולחים את ההודעה שכבר כוללת את התאריך בפנים!
+        preferred_format: form.preferred_format || "לא נבחר",
         contact_type: type,
-        lead_month: new Date().toISOString().slice(0, 7),
+        lead_month: now.toISOString().slice(0, 7),
       };
 
-      // 1. הסרנו את השמירה ל-ContactRequest! המידע לא יגיע ל-DB של האדמין.
-
-      // 2. עדכון ספירת פניות (מונה) למטפל
-      // אנחנו מושכים את המונה הנוכחי ומוסיפים לו 1
-      const currentLeads = therapist.leads_count || 0; // בהנחה שיש עמודה כזו, תשנה אם השם שונה
+      // 1. עדכון ספירת פניות (מונה) למטפל
+      const currentLeads = therapist.leads_count || 0; 
       await supabase
         .from("Therapist")
         .update({ leads_count: currentLeads + 1 })
         .eq("id", therapist.id)
         .catch(err => console.error("Error updating lead count:", err));
 
-      // 3. שליחת המייל ישירות למטפל (החזרנו את הפונקציה לפעולה!)
+      // 2. שליחת המייל ישירות למטפל
       const { error: invokeError } = await supabase.functions.invoke("notify-new-contact", {
         body: { ...contactData, therapist_name: therapist.full_name, therapist_email: therapist.email }
       });
 
-      // אם הפונקציה זורקת שגיאה (כמו ה-CORS ממקודם), נתפוס אותה
-      if (invokeError) throw invokeError;
+      if (invokeError) {
+        console.error("Invoke Error Details:", invokeError);
+        throw invokeError;
+      }
 
       toast.success("הפנייה נשלחה בהצלחה אל המטפל!");
       onClose();
