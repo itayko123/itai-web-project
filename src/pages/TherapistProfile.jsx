@@ -41,13 +41,14 @@ function ContactForm({ therapist }) {
 
 const mutation = useMutation({
     mutationFn: async () => {
-      // יצרנו אובייקט נקי לשליחה
       const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         ...sanitizeFormData(form),
         contact_type: "message",
-        status: "pending", // <--- זה יסדר את הופעת הפנייה כ"חדשה" בפורטל
+        status: "pending", 
+        created_date: new Date().toISOString(), // <--- הוספנו את השורה הזו!
       });
+// ... המשך הקוד כרגיל
       
       if (contactError) throw contactError;
 
