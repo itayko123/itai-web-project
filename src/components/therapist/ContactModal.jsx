@@ -28,17 +28,24 @@ export default function ContactModal({ therapist, open, onClose, type = "message
       // שילוב התאריך בתוך ההודעה עצמה כדי להבטיח שזה יופיע במייל
       const messageWithDate = `[הפנייה נשלחה בתאריך: ${readableDate}]\n\n${form.message ? "הודעה מהמטופל:\n" + form.message : "הפנייה התקבלה ללא הודעת טקסט."}`;
 
+      const nowStr = new Date().toISOString();
+
       const contactData = {
         therapist_id: therapist.id,
-        created_at: now.toISOString(),
-        date: readableDate, // הוספנו שדה date ספציפי למקרה שהפונקציה מחפשת אותו
         patient_name: form.patient_name,
         patient_email: form.patient_email,
-        patient_phone: form.patient_phone || "לא הוזן טלפון", // מונע ערך ריק
-        message: messageWithDate, // שולחים את ההודעה שכבר כוללת את התאריך בפנים!
+        patient_phone: form.patient_phone || "לא הוזן טלפון",
+        message: form.message || "ללא הודעה",
         preferred_format: form.preferred_format || "לא נבחר",
         contact_type: type,
-        lead_month: now.toISOString().slice(0, 7),
+        lead_month: nowStr.slice(0, 7),
+        
+        // --- פה אנחנו מכסים את כל האפשרויות לתאריך ---
+        created_at: nowStr,
+        createdAt: nowStr,
+        Date: nowStr,
+        date: nowStr,
+        timestamp: nowStr,
       };
 
       // 1. עדכון ספירת פניות (מונה) למטפל
