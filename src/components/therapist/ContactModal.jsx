@@ -14,7 +14,7 @@ export default function ContactModal({ therapist, open, onClose, type = "message
   const [form, setForm] = useState({ patient_name: "", patient_email: "", patient_phone: "", message: "", preferred_format: "", tos_accepted: false });
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
     if (!form.tos_accepted) { toast.error("יש לאשר את תנאי השימוש"); return; }
     if (!form.patient_name || !form.patient_email) { toast.error("יש למלא שם ואימייל"); return; }
     
@@ -22,39 +22,41 @@ export default function ContactModal({ therapist, open, onClose, type = "message
     
     try {
       const contactData = {
-        therapist_id: therapist?.id || null, // מוודא שזה עובד גם אם אין מטפל ספציפי
+        therapist_id: therapist.id,
         patient_name: form.patient_name,
         patient_email: form.patient_email,
         patient_phone: form.patient_phone,
         message: form.message,
         preferred_format: form.preferred_format,
-        tos_accepted: form.tos_accepted,
         contact_type: type,
         lead_month: new Date().toISOString().slice(0, 7),
       };
 
-      // 1. שמירה בבסיס הנתונים (הדבר החשוב ביותר)
-      const { error } = await supabase.from("ContactRequest").insert(contactData);
-      
-      if (error) {
-        console.error("Supabase insert error:", error);
-        throw error;
-      }
+      // 1. הסרנו את השמירה ל-ContactRequest! המידע לא יגיע ל-DB של האדמין.
 
-      // 2. הפעלת הפונקציה (בהערה זמנית כדי למנוע את שגיאת ה-CORS)
-      // אם תרצה להפעיל מתישהו את שליחת המיילים, תוריד את ה- // מהשורות הבאות:
-      /*
-      await supabase.functions.invoke("notify-new-contact", {
-        body: { ...contactData, therapist_name: therapist?.full_name, therapist_email: therapist?.email }
-      }).catch(err => console.log("Edge function warning (ignored):", err));
-      */
+      // 2. עדכון ספירת פניות (מונה) למטפל
+      // אנחנו מושכים את המונה הנוכחי ומוסיפים לו 1
+      const currentLeads = therapist.leads_count || 0; // בהנחה שיש עמודה כזו, תשנה אם השם שונה
+      await supabase
+        .from("Therapist")
+        .update({ leads_count: currentLeads + 1 })
+        .eq("id", therapist.id)
+        .catch(err => console.error("Error updating lead count:", err));
 
-      toast.success("הפנייה נשלחה בהצלחה!");
+      // 3. שליחת המייל ישירות למטפל (החזרנו את הפונקציה לפעולה!)
+      const { error: invokeError } = await supabase.functions.invoke("notify-new-contact", {
+        body: { ...contactData, therapist_name: therapist.full_name, therapist_email: therapist.email }
+      });
+
+      // אם הפונקציה זורקת שגיאה (כמו ה-CORS ממקודם), נתפוס אותה
+      if (invokeError) throw invokeError;
+
+      toast.success("הפנייה נשלחה בהצלחה אל המטפל!");
       onClose();
       
     } catch (err) {
-      console.error("Error submitting form:", err);
-      toast.error("אירעה שגיאה בשליחת הפנייה. נסה שוב מאוחר יותר.");
+      console.error("Error submitting to therapist:", err);
+      toast.error("אירעה שגיאה בשליחת הפנייה למטפל. נסה שוב.");
     } finally {
       setLoading(false);
     }
