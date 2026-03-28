@@ -67,16 +67,22 @@ const { data: requests = [] } = useQuery({
         .from("ContactRequest")
         .select("*")
         .eq("therapist_id", therapist?.id)
-        // אנחנו עדיין מבקשים מ-Supabase לסדר, למקרה שזה יעבוד
-        .order("created_date", { ascending: false }) 
         .limit(50);
         
       if (error) throw error;
       
-      // הנה הקסם: סידור כפוי ב-JavaScript מהחדש לישן!
+      // מיון חכם: קודם לפי סטטוס (חדש למעלה), ואז לפי התאריך
       const sortedData = (data || []).sort((a, b) => {
-        // הופכים את התאריכים לזמן אמיתי ומחסרים ביניהם כדי לסדר
-        return new Date(b.created_date) - new Date(a.created_date);
+        // 1. העדפה לסטטוס "חדש" (pending)
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+
+        // 2. אם שניהם באותו סטטוס, נמיין לפי זמן
+        // getTime() הופך את התאריך למספר כדי שיהיה קל להשוות
+        const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
+        const dateB = b.created_date ? new Date(b.created_date).getTime() : 0;
+        
+        return dateB - dateA;
       });
       
       return sortedData;
