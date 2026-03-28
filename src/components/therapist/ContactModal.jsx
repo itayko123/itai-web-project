@@ -23,6 +23,7 @@ export default function ContactModal({ therapist, open, onClose, type = "message
     try {
       const contactData = {
         therapist_id: therapist.id,
+        created_at: new Date().toISOString(),
         patient_name: form.patient_name,
         patient_email: form.patient_email,
         patient_phone: form.patient_phone,
