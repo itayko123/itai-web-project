@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, UserCircle2, Mail, Phone, BadgeCheck, Edit2, Save, X, Upload, FileText, PlusCircle } from "lucide-react";
+import { Loader2, UserCircle2, Mail, Phone, BadgeCheck, Edit2, Save, X, Upload, FileText, PlusCircle, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import PortalArticles from "@/components/therapist/PortalArticles";
 import GroupedCheckboxSelect from "@/components/therapist/GroupedCheckboxSelect";
@@ -34,6 +34,25 @@ const checkboxGroup = (label, items, selected, setSelected) => (
     </div>
   </div>
 );
+
+// פונקציית עזר ליצירת קישור וואטסאפ מנוקה ומסודר
+const getWhatsAppLink = (phone, patientName) => {
+  if (!phone) return "#";
+  
+  // מנקה כל מה שהוא לא מספר (כמו מקפים או רווחים)
+  let cleaned = phone.replace(/\D/g, ''); 
+  
+  // אם מתחיל ב-0, מחליף אותו ב-972 (קידומת ישראל)
+  if (cleaned.startsWith('0')) {
+    cleaned = '972' + cleaned.substring(1);
+  }
+
+  // הודעה מוכנה מראש שתחסוך למטפל הקלדה
+  const nameToGreet = patientName || 'שלום';
+  const message = encodeURIComponent(`${nameToGreet}, ראיתי שהשארת לי פנייה באתר... `);
+  
+  return `https://wa.me/${cleaned}?text=${message}`;
+};
 
 export default function TherapistPortal() {
   const { user } = useAuth();
@@ -289,32 +308,65 @@ const handlePhotoUpload = async (e) => {
 
       {/* Tab: Contact Requests */}
       {tab === 0 && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {requests.length === 0 && <p className="text-center py-12 text-muted-foreground text-sm">אין פניות עדיין</p>}
           {requests.map(r => (
-            <div key={r.id} className={`bg-card border rounded-xl p-4 ${(!r.status || r.status === "pending") ? "border-primary/30" : "border-border"}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">{r.patient_name}</span>
-                    <Badge variant={r.status === "responded" ? "secondary" : "default"} className="text-[10px]">
-                      {r.status === "responded" ? "טופל" : "חדש"}
-                    </Badge>
+            <div key={r.id} className={`bg-card border rounded-xl p-5 ${(!r.status || r.status === "pending") ? "border-primary/40 shadow-sm" : "border-border opacity-70"}`}>
+              <div className="flex flex-col gap-4">
+                
+                {/* חלק עליון: פרטים וסטטוס */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-lg">{r.patient_name}</span>
+                      <Badge variant={r.status === "responded" ? "secondary" : "default"} className="text-[10px]">
+                        {r.status === "responded" ? "טופל" : "חדש"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {r.patient_phone && <a href={`tel:${r.patient_phone}`} className="flex items-center gap-1.5 text-sm hover:text-primary transition-colors"><Phone className="w-3.5 h-3.5" /> {r.patient_phone}</a>}
+                      {r.patient_email && <a href={`mailto:${r.patient_email}`} className="flex items-center gap-1.5 text-sm hover:text-primary transition-colors"><Mail className="w-3.5 h-3.5" /> {r.patient_email}</a>}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1 mt-1">
-                    {r.patient_phone && <a href={`tel:${r.patient_phone}`} className="flex items-center gap-1 text-xs text-primary underline"><Phone className="w-3 h-3" /> {r.patient_phone}</a>}
-                    {r.patient_email && <a href={`mailto:${r.patient_email}`} className="flex items-center gap-1 text-xs text-primary underline"><Mail className="w-3 h-3" /> {r.patient_email}</a>}
+                  <div className="text-left">
+                    <p className="text-[11px] text-muted-foreground">
+                      {r.created_date ? new Date(r.created_date).toLocaleDateString("he-IL", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' }) : "לא זמין"}
+                    </p>
                   </div>
-                  {r.message && <p className="text-sm bg-muted/40 rounded-lg p-2 mt-2">{r.message}</p>}
-                  <p className="text-[10px] text-muted-foreground mt-2">
-                    תאריך פנייה: {r.created_date ? new Date(r.created_date).toLocaleDateString("he-IL") : "לא זמין"}
-                  </p>
                 </div>
-                {r.status !== "responded" && (
-                  <Button size="sm" onClick={() => markResponded.mutate(r.id)} disabled={markResponded.isPending}>
-                    {markResponded.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "סמן כטופל"}
-                  </Button>
+
+                {/* חלק אמצעי: הודעה */}
+                {r.message && (
+                  <div className="bg-muted/40 rounded-lg p-3 text-sm whitespace-pre-wrap border border-muted">
+                    {r.message}
+                  </div>
                 )}
+
+                {/* חלק תחתון: פעולות */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/50 mt-1">
+                  <div className="flex gap-2">
+                    {r.patient_phone && (
+                      <a 
+                        href={getWhatsAppLink(r.patient_phone, r.patient_name)} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Button size="sm" className="bg-[#25D366] hover:bg-[#1ebd5b] text-white gap-1.5 h-8">
+                          <MessageCircle className="w-4 h-4" />
+                          וואטסאפ
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                  
+                  {r.status !== "responded" && (
+                    <Button size="sm" variant="outline" className="h-8" onClick={() => markResponded.mutate(r.id)} disabled={markResponded.isPending}>
+                      {markResponded.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <BadgeCheck className="w-3.5 h-3.5 ml-1" />}
+                      סמן כטופל
+                    </Button>
+                  )}
+                </div>
+
               </div>
             </div>
           ))}

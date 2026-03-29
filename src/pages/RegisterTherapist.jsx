@@ -126,13 +126,14 @@ const handlePhotoUpload = async (e) => {
     toast.success(t.registerLicenseUploaded || "מסמך הרישיון הועלה בהצלחה");
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.full_name || !form.profession || !form.license_number) {
       toast.error(t.registerRequiredFields || "יש למלא שדות חובה");
       return;
     }
     setLoading(true);
+    
     const therapistData = {
       ...sanitizeFormData(form),
       price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
@@ -146,12 +147,42 @@ const handlePhotoUpload = async (e) => {
       license_document_url: licenseDocUrl || undefined,
       status: "pending",
     };
-    const { error } = await supabase.from("Therapist").insert(therapistData);
-    if (error) throw error;
-    // Notify admin directly
-    //await supabase.functions.invoke("notify-new-therapist", { body: therapistData });
-    setLoading(false);
-    setSubmitted(true);
+
+    try {
+      // 1. קודם כל שומרים את המטפל במסד הנתונים
+      const { error } = await supabase.from("Therapist").insert(therapistData);
+      if (error) throw error;
+
+      // 2. מיד לאחר השמירה המוצלחת - שולחים את המייל אליך!
+      // מחלצים את השם היפה של המקצוע (למשל "פסיכולוג/ית" במקום "psychologist")
+      const professionLabel = professions.find(p => p.value === form.profession)?.label || form.profession;
+      
+      try {
+        await fetch('/api/notify-admin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: form.full_name,
+            email: form.email,
+            phone: form.phone,
+            profession: professionLabel
+          }),
+        });
+      } catch (emailError) {
+        console.error("שליחת האימייל נכשלה, אבל המטפל נשמר במסד הנתונים:", emailError);
+        // אנחנו תופסים פה את השגיאה כדי שאם המייל נכשל מאיזושהי סיבה, 
+        // המטפל עדיין יראה הודעת הצלחה (כי הוא באמת נשמר ב-Supabase).
+      }
+
+      setLoading(false);
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("אירעה שגיאה בשמירת הנתונים. נסה שוב.");
+      setLoading(false);
+    }
   };
 
   if (submitted) return (

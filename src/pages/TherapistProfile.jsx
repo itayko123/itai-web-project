@@ -42,18 +42,18 @@ function ContactForm({ therapist }) {
 
 const mutation = useMutation({
     mutationFn: async () => {
+      // 1. שמירת הפנייה בדאטאבייס
       const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         ...sanitizeFormData(form),
         contact_type: "message",
         status: "pending", 
-        created_date: new Date().toISOString(), // <--- הוספנו את השורה הזו!
+        created_date: new Date().toISOString(),
       });
-// ... המשך הקוד כרגיל
       
       if (contactError) throw contactError;
 
-      // עדכון מונה הלידים
+      // 2. עדכון מונה הלידים של המטפל
       const currentLeads = therapist.lead_count || 0;
       const { error: therapistError } = await supabase
         .from("Therapist")
@@ -61,6 +61,26 @@ const mutation = useMutation({
         .eq("id", therapist.id);
         
       if (therapistError) throw therapistError;
+
+      // 3. שליחת אימייל התראה למטפל (ללא פרטים רפואיים חסויים!)
+      try {
+        await fetch('/api/notify-therapist', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            therapistEmail: therapist.email,
+            therapistName: therapist.full_name,
+            patientName: form.patient_name,
+            patientPhone: form.patient_phone,
+          }),
+        });
+      } catch (emailError) {
+        // אנחנו תופסים את השגיאה פה ולא זורקים אותה הלאה כדי שהמטופל
+        // עדיין יקבל הודעת "הפנייה נשלחה בהצלחה" (היא הרי נשמרה ב-Supabase)
+        console.error("Failed to send email notification to therapist:", emailError);
+      }
     },
     onSuccess: () => {
       setSubmitted(true);
