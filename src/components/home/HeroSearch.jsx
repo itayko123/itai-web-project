@@ -72,7 +72,7 @@ export default function HeroSearch() {
             value={nameSearch}
             onChange={e => setNameSearch(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSearch()}
-            placeholder="חיפוש לפי שם מטפל..."
+            placeholder={t.searchByName || "חיפוש לפי שם מטפל..."}
             className="pr-9 h-11 rounded-xl bg-white text-sm border-border"
           />
         </div>

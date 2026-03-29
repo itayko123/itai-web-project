@@ -9,6 +9,7 @@ export const translations = {
     navHome: "דף הבית",
     navSearch: "מצא מטפל",
     navQuiz: "שאלון התאמה",
+    articles: "מאמרים",
     navJoin: "הצטרף כמטפל",
     navArticles: "מאמרים",
     navHowItWorks: "איך זה עובד?",
@@ -16,6 +17,7 @@ export const translations = {
     navContact: "צור קשר",
     langLabel: "שפה",
     // Hero Search
+    searchByName: "חיפוש לפי שם מטפל...",
     searchTitle: "מצא את המטפל המתאים לך",
     searchSubtitle: "פלטפורמה בטוחה ואמינה לחיבור עם פסיכולוגים, פסיכיאטרים ומטפלים מוסמכים בישראל.",
     searchBtn: "חיפוש",
@@ -335,6 +337,7 @@ export const translations = {
     dir: "ltr",
     // Nav
     navHome: "Home",
+    articles: "Articles",
     navSearch: "Find Therapists",
     navQuiz: "Match Me",
     navJoin: "Join as Therapist",
@@ -344,6 +347,7 @@ export const translations = {
     navContact: "Contact",
     langLabel: "Language",
     // Hero Search
+    searchByName: "Search by therapist name...",
     searchTitle: "Find Your Perfect Therapist",
     searchSubtitle: "A safe and trusted platform connecting you with certified psychologists, psychiatrists and therapists in Israel.",
     searchBtn: "Search",
@@ -663,6 +667,7 @@ export const translations = {
     dir: "ltr",
     // Nav
     navHome: "Главная",
+    articles: "Статьи",
     navSearch: "Найти терапевта",
     navQuiz: "Подобрать терапевта",
     navJoin: "Зарегистрироваться",
@@ -672,6 +677,7 @@ export const translations = {
     navContact: "Контакты",
     langLabel: "Язык",
     // Hero Search
+    searchByName: "Поиск по имени терапевта...",
     searchTitle: "Найдите своего терапевта",
     searchSubtitle: "Безопасная и надёжная платформа для связи с психологами, психиатрами и терапевтами в Израиле.",
     searchBtn: "Поиск",
