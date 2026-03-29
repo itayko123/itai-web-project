@@ -45,7 +45,7 @@ export default function HeroSearch() {
   const titlePart2 = titleWords.slice(3).join(" ");
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-teal-50 via-background to-sky-50 pt-16 pb-20 px-4">
+    <section className="min-h-[80vh] relative overflow-hidden bg-gradient-to-br from-teal-50 via-background...">
       <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-ocean/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
