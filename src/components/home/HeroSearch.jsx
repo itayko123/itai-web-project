@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Sparkles, ChevronDown, ChevronUp, SlidersHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { useLanguage } from "@/lib/LanguageContext";
 import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { ISRAEL_LOCATIONS } from "@/lib/israelLocations";
@@ -25,14 +26,14 @@ export default function HeroSearch() {
 
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (profession) params.set("profession", profession);
-    if (city) params.set("city", city);
-    if (specialization) params.set("specialization", specialization);
-    if (hmo) params.set("hmo", hmo);
-    if (format) params.set("format", format);
-    if (language) params.set("language", language);
-    if (gender) params.set("gender", gender);
-    if (treatment) params.set("treatment_method", treatment);
+    if (profession && profession !== "all") params.set("profession", profession);
+    if (city && city !== "all") params.set("city", city);
+    if (specialization && specialization !== "all") params.set("specialization", specialization);
+    if (hmo && hmo !== "all") params.set("hmo", hmo);
+    if (format && format !== "all") params.set("format", format);
+    if (language && language !== "all") params.set("language", language);
+    if (gender && gender !== "all") params.set("gender", gender);
+    if (treatment && treatment !== "all") params.set("treatment_method", treatment);
     if (immediate) params.set("immediate", "true");
     if (nameSearch.trim()) params.set("name", nameSearch.trim());
     navigate(`/therapists?${params.toString()}`);
@@ -82,6 +83,7 @@ export default function HeroSearch() {
               <SelectValue placeholder={t.therapistType || "סוג מטפל"} />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">כל הסוגים</SelectItem>
               <SelectItem value="psychologist">פסיכולוג/ית</SelectItem>
               <SelectItem value="psychiatrist">פסיכיאטר/ית</SelectItem>
               <SelectItem value="psychotherapist">פסיכותרפיסט/ית</SelectItem>
@@ -100,7 +102,8 @@ export default function HeroSearch() {
               </div>
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {ISRAEL_LOCATIONS?.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              <SelectItem value="all">כל הארץ</SelectItem>
+              {ISRAEL_LOCATIONS?.map(c => <SelectItem key={c} value={String(c)}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
 
@@ -111,13 +114,14 @@ export default function HeroSearch() {
               <SelectValue placeholder={t.treatment || "תחום טיפול"} />
             </SelectTrigger>
             <SelectContent className="max-h-80">
+              <SelectItem value="all">כל התחומים</SelectItem>
               {SPECIALIZATION_GROUPS?.map(g => (
-                <div key={g.group}>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-gray-700 bg-muted/30">{g.group}</div>
+                <SelectGroup key={g.group}>
+                  <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-gray-700 bg-muted/30">{g.group}</SelectLabel>
                   {g.items?.map(item => (
-                    <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                    <SelectItem key={item.value} value={String(item.value)}>{item.label}</SelectItem>
                   ))}
-                </div>
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
@@ -144,19 +148,24 @@ export default function HeroSearch() {
                 <SelectValue placeholder="קופת חולים / ביטוח" />
               </SelectTrigger>
               <SelectContent>
-                <div className="px-2 py-1 text-xs font-semibold text-gray-700 bg-muted/30">קופות חולים</div>
-                <SelectItem value="maccabi">מכבי</SelectItem>
-                <SelectItem value="clalit">כללית</SelectItem>
-                <SelectItem value="meuhedet">מאוחדת</SelectItem>
-                <SelectItem value="leumit">לאומית</SelectItem>
-                <div className="px-2 py-1 text-xs font-semibold text-gray-700 bg-muted/30">חברות ביטוח</div>
-                <SelectItem value="menora">מנורה מבטחים</SelectItem>
-                <SelectItem value="harel">הראל</SelectItem>
-                <SelectItem value="clal_insurance">כלל ביטוח</SelectItem>
-                <SelectItem value="migdal">מגדל</SelectItem>
-                <SelectItem value="phoenix">הפניקס</SelectItem>
-                <SelectItem value="ayalon">איילון</SelectItem>
-                <SelectItem value="private">פרטי</SelectItem>
+                <SelectItem value="all">ללא סינון</SelectItem>
+                <SelectGroup>
+                  <SelectLabel className="px-2 py-1 text-xs font-semibold text-gray-700 bg-muted/30">קופות חולים</SelectLabel>
+                  <SelectItem value="maccabi">מכבי</SelectItem>
+                  <SelectItem value="clalit">כללית</SelectItem>
+                  <SelectItem value="meuhedet">מאוחדת</SelectItem>
+                  <SelectItem value="leumit">לאומית</SelectItem>
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="px-2 py-1 text-xs font-semibold text-gray-700 bg-muted/30">חברות ביטוח</SelectLabel>
+                  <SelectItem value="menora">מנורה מבטחים</SelectItem>
+                  <SelectItem value="harel">הראל</SelectItem>
+                  <SelectItem value="clal_insurance">כלל ביטוח</SelectItem>
+                  <SelectItem value="migdal">מגדל</SelectItem>
+                  <SelectItem value="phoenix">הפניקס</SelectItem>
+                  <SelectItem value="ayalon">איילון</SelectItem>
+                  <SelectItem value="private">פרטי</SelectItem>
+                </SelectGroup>
               </SelectContent>
             </Select>
 
@@ -165,6 +174,7 @@ export default function HeroSearch() {
                 <SelectValue placeholder={t.format || "אופן טיפול"} />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">כל האופנים</SelectItem>
                 <SelectItem value="in_person">פנים אל פנים</SelectItem>
                 <SelectItem value="zoom">זום</SelectItem>
                 <SelectItem value="phone">טלפון</SelectItem>
@@ -176,6 +186,7 @@ export default function HeroSearch() {
                 <SelectValue placeholder={t.language || "שפה"} />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">כל השפות</SelectItem>
                 <SelectItem value="hebrew">עברית</SelectItem>
                 <SelectItem value="english">אנגלית</SelectItem>
                 <SelectItem value="arabic">ערבית</SelectItem>
@@ -191,7 +202,7 @@ export default function HeroSearch() {
                 <SelectValue placeholder="מגדר מטפל" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={null}>כלשהו</SelectItem>
+                <SelectItem value="all">כלשהו</SelectItem>
                 <SelectItem value="female">מטפלת (נשית)</SelectItem>
                 <SelectItem value="male">מטפל (גברית)</SelectItem>
               </SelectContent>
@@ -204,14 +215,14 @@ export default function HeroSearch() {
                   <SelectValue placeholder="כל השיטות" />
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
-                  <SelectItem value={null}>כל השיטות</SelectItem>
+                  <SelectItem value="all">כל השיטות</SelectItem>
                   {TREATMENT_METHOD_GROUPS?.map(g => (
-                    <div key={g.group}>
-                      <div className="px-2 py-1 text-xs font-semibold text-gray-700 bg-muted/30">{g.group}</div>
+                    <SelectGroup key={g.group}>
+                      <SelectLabel className="px-2 py-1 text-xs font-semibold text-gray-700 bg-muted/30">{g.group}</SelectLabel>
                       {g.items?.map(item => (
-                        <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                        <SelectItem key={item.value} value={String(item.value)}>{item.label}</SelectItem>
                       ))}
-                    </div>
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>

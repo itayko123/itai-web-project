@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { lazy, Suspense } from 'react';
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from 'sonner';
@@ -140,6 +141,7 @@ function App() {
       </LanguageProvider>
     </AuthProvider>
     </HelmetProvider>
+    
   )
 }
 

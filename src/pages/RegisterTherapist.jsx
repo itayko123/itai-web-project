@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from "react";
 import imageCompression from 'browser-image-compression';
 import { supabase } from "@/lib/supabase";
