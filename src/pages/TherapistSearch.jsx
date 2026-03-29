@@ -1,6 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from "react";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import TherapistCard from "@/components/therapist/TherapistCard";
