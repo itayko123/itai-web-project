@@ -45,7 +45,7 @@ export default function HeroSearch() {
   const titlePart2 = titleWords.slice(3).join(" ");
 
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-br from-teal-50 via-background to-background min-h-[60vh] flex flex-col justify-center pt-20 pb-16 px-4">
+    <section className="relative w-full overflow-hidden bg-gradient-to-br from-teal-50 via-background to-background pt-16 pb-20 md:pt-20 md:pb-24 px-4 min-h-[480px]">
       <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-ocean/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
