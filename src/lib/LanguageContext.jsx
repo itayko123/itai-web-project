@@ -1,7 +1,12 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
 // תיקון: הוספנו null כדי למנוע את שגיאת ה-TypeScript
-const LanguageContext = createContext(null);
+// בתוך LanguageContext.jsx
+export const LanguageContext = createContext({
+  language: 'he',
+  changeLanguage: () => {},
+  t: {}
+});
 
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState(() => {

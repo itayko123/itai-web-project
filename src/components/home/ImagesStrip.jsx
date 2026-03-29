@@ -1,10 +1,14 @@
 const images = [
-  {
-    src: "https://images.unsplash.com/photo-1527137342181-19aab11a8ee8?w=800&q=75&fm=webp",
-    alt: "שיחה אישית",
-    caption: "סביבה בטוחה ומכבדת",
-    tag: "פנים אל פנים"
-  },
+{
+  // 1. הורדתי את ה-w ל-400 (מתאים בדיוק למובייל וחוסך המון משקל)
+  src: "https://images.unsplash.com/photo-1527137342181-19aab11a8ee8?w=400&q=75&fm=webp",
+  alt: "שיחה אישית",
+  // 2. תיקון תחביר: באובייקט משתמשים בנקודתיים (:) ולא בסימן שווה (=)
+  // וב-React כותבים ב-CamelCase (P גדולה)
+  fetchPriority: "high", 
+  caption: "סביבה בטוחה ומכבדת",
+  tag: "פנים אל פנים"
+},
   {
     src: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=800&q=75&fm=webp",
     alt: "טיפול מרחוק",
