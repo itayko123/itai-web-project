@@ -243,15 +243,23 @@ export default function HeroSearch() {
           </div>
         )}
 
+        {/* --- התיקון והחידוש מ-BASE44 נמצא כאן --- */}
         <div className="flex flex-wrap justify-center gap-2 mt-5">
-          {["חרדה", "דיכאון", "טראומה", "זוגיות", "ADHD", "שחיקה"]?.map(tag => (
+          {[
+            { label: "חרדה", value: "anxiety" },
+            { label: "דיכאון", value: "depression" },
+            { label: "טראומה", value: "trauma" },
+            { label: "זוגיות", value: "couples" },
+            { label: "ADHD", value: "adhd" },
+            { label: "שחיקה", value: "burnout" },
+          ].map(tag => (
             <button
-              key={tag}
-              onClick={() => navigate(`/therapists?concern=${encodeURIComponent(tag)}`)}
+              key={tag.value}
+              onClick={() => navigate(`/therapists?specialization=${encodeURIComponent(tag.value)}`)}
               className="text-xs bg-white border border-border hover:border-primary/40 hover:bg-accent px-3 py-1.5 rounded-full transition-all"
               style={{ color: '#111827' }}
             >
-              {tag}
+              {tag.label}
             </button>
           ))}
         </div>
