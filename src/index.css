@@ -10,12 +10,12 @@
     --card-foreground: 210 25% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 25% 15%;
-    --primary: 172 40% 40%;
+    --primary: 172 40% 32%; /* שונה מ-40 ל-32 לטובת ניגודיות נגישה יותר */
     --primary-foreground: 0 0% 100%;
     --secondary: 200 30% 94%;
     --secondary-foreground: 210 25% 25%;
     --muted: 200 20% 96%;
-    --muted-foreground: 210 15% 50%;
+    --muted-foreground: 210 15% 38%; /* שונה מ-50 ל-38 לטובת ניגודיות נגישה יותר */
     --accent: 165 35% 88%;
     --accent-foreground: 172 40% 25%;
     --destructive: 0 72% 51%;
