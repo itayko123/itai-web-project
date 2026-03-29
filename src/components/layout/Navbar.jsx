@@ -13,7 +13,7 @@ export default function Navbar() {
     { to: "/", label: t.navHome },
     { to: "/therapists", label: t.navSearch },
     { to: "/quiz", label: t.navQuiz },
-    { to: "/articles", label: t.arcarticles || "מאמרים" }, // השורה החדשה שנוספה
+    { to: "/articles", label: t.arcarticles}, // השורה החדשה שנוספה
     { to: "/faq", label: t.navFaq },
     { to: "/contact", label: t.navContact },
   ];
