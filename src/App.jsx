@@ -130,7 +130,6 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <Router>
             <AuthenticatedApp />
-            <CookieConsent />
           </Router>
           
           {/* הנה שני ה-Toasters שלנו יושבים יחד בשלום! */}
