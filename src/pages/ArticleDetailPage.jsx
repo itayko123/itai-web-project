@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Clock, ArrowRight, User, BookOpen, ExternalLink, BadgeCheck } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useLanguage } from "@/lib/LanguageContext";
+// 1. הוספנו את הייבוא של ה-Helmet
+import { Helmet } from "react-helmet-async";
 
 const categoryLabels = {
   anxiety: "חרדה", depression: "דיכאון", relationships: "זוגיות",
@@ -25,21 +27,19 @@ export default function ArticleDetailPage() {
 
   const { data: article, isLoading } = useQuery({
     queryKey: ["article", id],
-    // חשוב: אנחנו מוודאים שיש id לפני שמריצים את הבקשה
     enabled: !!id, 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("Article")
         .select("*")
         .eq("id", id)
-        .single(); // במקום limit וחיפוש מערך, single מביא אובייקט אחד מדויק
+        .single(); 
 
       if (error) {
         console.error("Supabase Error:", error);
         throw error;
       }
       
-      // הוספנו כאן את עדכון הצפיות רק אם המאמר נמצא
       if (data) {
         supabase
           .from("Article")
@@ -52,6 +52,7 @@ export default function ArticleDetailPage() {
       return data;
     },
   });
+
   const { data: therapistList = [] } = useQuery({
     queryKey: ["article-author", article?.therapist_id],
     queryFn: async () => {
@@ -78,6 +79,21 @@ export default function ArticleDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 2. הנה ה-SEO Magic! ברגע שהעמוד נטען, זה משנה את ה-head של האתר */}
+      <Helmet>
+        {/* כותרת הדף (מה שרואים בטאב למעלה ובגוגל) */}
+        <title>{article.title} | Connect</title> 
+        {/* תיאור קצר לגוגל (לוקח את התקציר, ואם אין - חותך 150 תווים מהתוכן) */}
+        <meta name="description" content={article.excerpt || article.content?.substring(0, 150)} />
+        
+        {/* תגיות מיוחדות לשיתוף יפה בווטסאפ/פייסבוק */}
+        <meta property="og:title" content={article.title} />
+        <meta property="og:description" content={article.excerpt || article.content?.substring(0, 150)} />
+        {article.cover_image_url && (
+          <meta property="og:image" content={article.cover_image_url} />
+        )}
+      </Helmet>
+
       {/* Hero image */}
       {article.cover_image_url && (
         <div className="w-full h-64 md:h-80 overflow-hidden">

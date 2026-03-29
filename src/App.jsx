@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from 'sonner';
-
+import { HelmetProvider } from 'react-helmet-async';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -123,6 +123,7 @@ const AuthenticatedApp = () => {
 
 function App() {
   return (
+    <HelmetProvider>
     <AuthProvider>
       <LanguageProvider>
         <QueryClientProvider client={queryClientInstance}>
@@ -138,6 +139,7 @@ function App() {
         </QueryClientProvider>
       </LanguageProvider>
     </AuthProvider>
+    </HelmetProvider>
   )
 }
 
