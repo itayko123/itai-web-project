@@ -73,7 +73,7 @@ const mutation = useMutation({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.tos_accepted) { toast.error("יש לאשר את תנאי השימוש"); return; }
+    if (!form.tos_accepted) { toast.error("יש לאשר את תנאי השימוש ומדיניות הפרטיות"); return; }
     if (!form.patient_name || !form.patient_email) { toast.error("יש למלא שם ואימייל"); return; }
     mutation.mutate();
   };
@@ -131,9 +131,9 @@ const mutation = useMutation({
       <div className="bg-muted/50 rounded-xl p-3 flex items-start gap-3">
         <Checkbox id="tos" checked={form.tos_accepted} onCheckedChange={v => setForm({...form, tos_accepted: v})} className="mt-0.5" />
         <label htmlFor="tos" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-          קראתי ואני מסכים/ה ל
-          <Link to="/terms" className="text-primary underline mx-1">תנאי השימוש</Link>
-          ומבין/ה כי הפלטפורמה אינה אחראית לתהליך הטיפול עצמו.
+          קראתי ואני מסכים/ה ל<Link to="/terms" className="text-primary underline mx-1">תנאי השימוש</Link> 
+          ול<Link to="/privacy" className="text-primary underline mx-1">מדיניות הפרטיות</Link>, 
+          ואני מאשר/ת את איסוף המידע והעברתו למטפל/ת. ידוע לי כי הפלטפורמה מקשרת בלבד ואינה אחראית על הטיפול עצמו.
         </label>
       </div>
 
