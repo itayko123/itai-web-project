@@ -4,19 +4,21 @@ import { createContext, useContext, useState } from "react";
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  // 1. כשהאתר עולה, נבדוק אם יש שפה שמורה, אחרת נשים עברית ("he")
   const [language, setLanguage] = useState(() => {
     return localStorage.getItem("language") || "he";
   });
 
-  // 2. הפונקציה שמשנה את השפה וגם שומרת אותה
   const changeLanguage = (newLang) => {
     setLanguage(newLang);
     localStorage.setItem("language", newLang); 
   };
 
+  // 1. שולפים את המילים של השפה הנוכחית מתוך המילון (גיבוי לעברית אם חסר)
+  const t = translations[language] || translations.he;
+
+  // 2. מוסיפים את t ל-value כדי שכל האתר יוכל להשתמש בו!
   return (
-    <LanguageContext.Provider value={{ language, changeLanguage }}>
+    <LanguageContext.Provider value={{ language, changeLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
