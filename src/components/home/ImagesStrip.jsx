@@ -1,24 +1,24 @@
 const images = [
   {
-    src: "https://images.unsplash.com/photo-1527137342181-19aab11a8ee8?w=800&q=85",
+    src: "https://images.unsplash.com/photo-1527137342181-19aab11a8ee8?w=800&q=75&fm=webp",
     alt: "שיחה אישית",
     caption: "סביבה בטוחה ומכבדת",
     tag: "פנים אל פנים"
   },
   {
-    src: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=800&q=85",
+    src: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=800&q=75&fm=webp",
     alt: "טיפול מרחוק",
     caption: "טיפול נוח מהבית",
     tag: "זום / טלפון"
   },
   {
-    src: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=800&q=85",
+    src: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=800&q=75&fm=webp",
     alt: "מטפל מוסמך",
     caption: "מטפלים מאומתים ומוסמכים",
     tag: "אימות מקצועי"
   },
   {
-    src: "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=800&q=85",
+    src: "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=800&q=75&fm=webp",
     alt: "בריאות הנפש",
     caption: "הדרך לחיים טובים יותר",
     tag: "בריאות הנפש"
