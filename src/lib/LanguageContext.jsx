@@ -1,9 +1,35 @@
 import { createContext, useContext, useState } from "react";
 
+// יצירת הקונטקסט
+const LanguageContext = createContext(null);
+
+export function LanguageProvider({ children }) {
+  // 1. כשהאתר עולה, נבדוק אם יש שפה שמורה, אחרת נשים עברית ("he")
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem("language") || "he";
+  });
+
+  // 2. הפונקציה שמשנה את השפה וגם שומרת אותה
+  const changeLanguage = (newLang) => {
+    setLanguage(newLang);
+    localStorage.setItem("language", newLang); 
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, changeLanguage }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+// Hook מותאם אישית לשימוש קל בקונטקסט
+export const useLanguage = () => useContext(LanguageContext);
+
+
 // ─── Translation Dictionary ────────────────────────────────────────────────
+// מכאן והלאה זה המילון הענק שלך (he, en, ru) - אל תגע בו, הוא מעולה!
 export const translations = {
   he: {
-    lang: "he",
     dir: "rtl",
     // Nav
     navHome: "דף הבית",
@@ -992,25 +1018,3 @@ export const translations = {
     a11yAriaDialog: "Параметры доступности",
   },
 };
-
-const LanguageContext = createContext(null);
-
-export function LanguageProvider({ children }) {
-  const [lang, setLang] = useState("he");
-  const t = translations[lang];
-
-  document.documentElement.dir = t.dir;
-  document.documentElement.lang = t.lang;
-
-  return (
-    <LanguageContext.Provider value={{ lang, setLang, t, translations }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-}
-
-export function useLanguage() {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
-  return ctx;
-}

@@ -1,3 +1,4 @@
+/*
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Cookie, X } from "lucide-react";
@@ -57,3 +58,4 @@ export default function CookieConsent() {
     </div>
   );
 }
+  */

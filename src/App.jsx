@@ -12,7 +12,7 @@ import { LanguageProvider } from '@/lib/LanguageContext';
 // רכיבים שצריכים להיטען מיד (Layout, הודעות שגיאה וכו')
 import AppLayout from './components/layout/AppLayout';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import CookieConsent from './components/CookieConsent';
+//import CookieConsent from './components/CookieConsent';
 import PageNotFound from './lib/PageNotFound';
 
 // --- כאן מתחיל הקסם של טעינה עצלה (Code Splitting) ---
