@@ -1,4 +1,5 @@
 import { useState } from "react";
+import imageCompression from 'browser-image-compression';
 import { supabase } from "@/lib/supabase";
 import { uploadTherapistFile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
@@ -84,14 +85,34 @@ export default function RegisterTherapist() {
     { value: "amharic", label: t.langAmharic || "אמהרית" },
   ];
 
-  const handlePhotoUpload = async (e) => {
+const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
-    const fileUrl = await uploadTherapistFile(file, "photos");
-    setPhotoUrl(fileUrl);
-    setUploadingPhoto(false);
-    toast.success(t.registerPhotoUploaded || "תמונה הועלתה בהצלחה");
+    
+    try {
+      // 1. הגדרות הכיווץ שלנו
+      const options = {
+        maxSizeMB: 0.1, // מקסימום 100KB לתמונה
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+        fileType: 'image/webp' // הופך אוטומטית לפורמט שגוגל אוהב
+      };
+
+      // 2. מכווצים את התמונה!
+      const compressedFile = await imageCompression(file, options);
+      
+      // 3. שולחים ל-Supabase את התמונה המכווצת (compressedFile) במקום המקורית
+      const fileUrl = await uploadTherapistFile(compressedFile, "photos");
+      
+      setPhotoUrl(fileUrl);
+      toast.success(t.registerPhotoUploaded || "תמונה הועלתה בהצלחה");
+    } catch (error) {
+      console.error("Error compressing image:", error);
+      toast.error("הייתה בעיה בעיבוד התמונה, נסה תמונה אחרת.");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleLicenseUpload = async (e) => {

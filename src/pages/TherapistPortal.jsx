@@ -1,4 +1,5 @@
 import { useState } from "react";
+import imageCompression from 'browser-image-compression';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { uploadTherapistFile } from "@/lib/storage";
@@ -90,8 +91,9 @@ const { data: requests = [] } = useQuery({
     enabled: !!therapist?.id,
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async (data) => {
+const updateMutation = useMutation({
+    // הוספנו פה הערה קטנה שאומרת ל-VS Code שהמידע הוא אובייקט
+    mutationFn: async (/** @type {any} */ data) => {
       const { error } = await supabase.from("Therapist").update(data).eq("id", therapist.id);
       if (error) throw error;
     },
@@ -193,15 +195,31 @@ const { data: requests = [] } = useQuery({
     });
   };
 
-  const handlePhotoUpload = async (e) => {
+const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
-    const fileUrl = await uploadTherapistFile(file, "photos");
-    await supabase.from("Therapist").update({ photo_url: fileUrl }).eq("id", therapist.id);
-    qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
-    toast.success("תמונת הפרופיל עודכנה");
-    setUploadingPhoto(false);
+
+    try {
+      const options = {
+        maxSizeMB: 0.1,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+        fileType: 'image/webp'
+      };
+
+      const compressedFile = await imageCompression(file, options);
+      const fileUrl = await uploadTherapistFile(compressedFile, "photos");
+      
+      await supabase.from("Therapist").update({ photo_url: fileUrl }).eq("id", therapist.id);
+      qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
+      toast.success("תמונת הפרופיל כווצה ועודכנה בהצלחה!");
+    } catch (error) {
+      console.error("Error compressing image:", error);
+      toast.error("שגיאה בהעלאת התמונה");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleLicenseUpload = async (e) => {
