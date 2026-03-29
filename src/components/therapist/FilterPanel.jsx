@@ -19,6 +19,8 @@ function CompactGroupedSelect({ label, groups, value, onChange, allLabel }) {
       <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       <button
         type="button"
+        aria-label={`פתח סינון ${label}`}
+        aria-expanded={open}
         onClick={() => setOpen(o => !o)}
         className="w-full h-9 flex items-center justify-between px-3 rounded-md border border-input bg-transparent text-sm hover:bg-muted/30 transition-colors"
       >
@@ -77,7 +79,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.filterProfession || "מקצוע"}</Label>
         <Select value={filters.profession} onValueChange={v => onChange({ ...filters, profession: v })}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
+          <SelectTrigger aria-label={t.filterProfession || "בחר מקצוע"} className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all}</SelectItem>
             <SelectItem value="psychologist">{t.profPsychologist || "פסיכולוג/ית"}</SelectItem>
@@ -92,7 +94,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.city}</Label>
         <Select value={filters.city} onValueChange={v => onChange({ ...filters, city: v })}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t.filterAllCities || "כל הערים"} /></SelectTrigger>
+          <SelectTrigger aria-label={t.city || "בחר עיר"} className="h-9 text-sm"><SelectValue placeholder={t.filterAllCities || "כל הערים"} /></SelectTrigger>
           <SelectContent className="max-h-72">
             <SelectItem value="all">{t.filterAllCities || "כל הערים"}</SelectItem>
             {ISRAEL_LOCATIONS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -119,7 +121,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.format}</Label>
         <Select value={filters.format} onValueChange={v => onChange({ ...filters, format: v })}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
+          <SelectTrigger aria-label={t.format || "בחר פורמט"} className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all}</SelectItem>
             <SelectItem value="in_person">{t.formatInPerson || "פנים אל פנים"}</SelectItem>
@@ -132,7 +134,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.hmo}</Label>
         <Select value={filters.hmo} onValueChange={v => onChange({ ...filters, hmo: v })}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
+          <SelectTrigger aria-label={t.hmo || "בחר קופת חולים"} className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all}</SelectItem>
             <SelectItem value="maccabi">{t.hmoMaccabi || "מכבי"}</SelectItem>
@@ -153,7 +155,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.language}</Label>
         <Select value={filters.language || "all"} onValueChange={v => onChange({ ...filters, language: v })}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
+          <SelectTrigger aria-label={t.language || "בחר שפה"} className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all}</SelectItem>
             <SelectItem value="hebrew">{t.langHebrew || "עברית"}</SelectItem>
@@ -170,7 +172,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.gender}</Label>
         <Select value={filters.gender} onValueChange={v => onChange({ ...filters, gender: v })}>
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
+          <SelectTrigger aria-label={t.gender || "בחר מגדר"} className="h-9 text-sm"><SelectValue placeholder={t.all} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all}</SelectItem>
             <SelectItem value="female">{t.genderFemale || "נשית"}</SelectItem>

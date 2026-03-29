@@ -57,7 +57,11 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(Boolean(currentUser));
       setIsLoadingAuth(false);
     } catch (error) {
-      console.error('User auth check failed:', error);
+      // הנה התיקון: מדפיסים את השגיאה רק אם זו לא שגיאת האורח הרגילה!
+      if (error?.message !== 'Auth session missing!') {
+        console.error('User auth check failed:', error);
+      }
+      
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthError({

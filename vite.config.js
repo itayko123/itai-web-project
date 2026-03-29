@@ -12,5 +12,8 @@ export default defineConfig({
   },
   plugins: [
     react(),
-  ]
+  ],
+  build: {
+    sourcemap: true, // התוספת הזו מונעת את שגיאת ה-Best Practices
+  }
 });
