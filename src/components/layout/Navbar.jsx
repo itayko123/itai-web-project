@@ -6,14 +6,14 @@ import { useLanguage } from "@/lib/LanguageContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const location = useLocation();
+  const location = useLocation(); 
   const { t } = useLanguage();
 
   const links = [
     { to: "/", label: t.navHome },
     { to: "/therapists", label: t.navSearch },
     { to: "/quiz", label: t.navQuiz },
-    { to: "/articles", label: t.arcarticles}, // השורה החדשה שנוספה
+    { to: "/articles", label: t.navArticles },
     { to: "/faq", label: t.navFaq },
     { to: "/contact", label: t.navContact },
   ];
