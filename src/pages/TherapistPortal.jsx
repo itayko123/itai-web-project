@@ -49,7 +49,7 @@ const getWhatsAppLink = (phone, patientName) => {
 
   // הודעה מוכנה מראש שתחסוך למטפל הקלדה
   const nameToGreet = patientName || 'שלום';
-  const message = encodeURIComponent(`${nameToGreet}, ראיתי שהשארת לי פנייה באתר... `);
+  const message = encodeURIComponent(`םולש ,${nameToGreet}, ראיתי שהשארת לי פנייה באתר... `);
   
   return `https://wa.me/${cleaned}?text=${message}`;
 };

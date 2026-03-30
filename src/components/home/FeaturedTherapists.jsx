@@ -31,8 +31,8 @@ export default function FeaturedTherapists() {
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold mb-1">{t.featuredTitle || "מטפלים מובילים"}</h2>
-            <p className="text-sm text-muted-foreground">{t.featuredSubtitle || "מאומתים, מדורגים ומומלצים"}</p>
+            <h2 className="text-2xl font-bold mb-1">{t.featuredTitle || "מטפלים חדשים"}</h2>
+            <p className="text-sm text-muted-foreground">{t.featuredSubtitle || "מאומתים, חדשים ומקצועיים"}</p>
           </div>
           <Link to="/therapists" className="flex items-center gap-1 text-sm text-primary font-medium hover:underline" aria-label={t.featuredViewAll || "צפה בכולם"}>
             {t.featuredViewAll || "צפה בכולם"}
