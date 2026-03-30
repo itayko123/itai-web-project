@@ -328,10 +328,18 @@ const handlePhotoUpload = async (e) => {
                       {r.patient_email && <a href={`mailto:${r.patient_email}`} className="flex items-center gap-1.5 text-sm hover:text-primary transition-colors"><Mail className="w-3.5 h-3.5" /> {r.patient_email}</a>}
                     </div>
                   </div>
-                  <div className="text-left">
+                  <div className="text-left flex flex-col items-end gap-1">
                     <p className="text-[11px] text-muted-foreground">
-                      {r.created_date ? new Date(r.created_date).toLocaleDateString("he-IL", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' }) : "לא זמין"}
+                      {r.created_date ? new Date(r.created_date).toLocaleString("he-IL", { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' }) : "לא זמין"}
                     </p>
+                    {r.preferred_format && (
+                      <Badge variant="outline" className="text-[10px] bg-muted/30">
+                        {r.preferred_format === 'zoom' ? 'זום' : 
+                        r.preferred_format === 'in_person' ? 'פנים אל פנים' : 
+                        r.preferred_format === 'phone' ? 'טלפון' : 
+                        r.preferred_format}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
