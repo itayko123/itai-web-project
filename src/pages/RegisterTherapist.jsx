@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch"; // הייבוא החדש שהוספנו
+import { Switch } from "@/components/ui/switch";
 import { BadgeCheck, CheckCircle, Upload, Loader2, FileText, Camera } from "lucide-react";
 import { toast } from "sonner";
 import GroupedCheckboxSelect from "@/components/therapist/GroupedCheckboxSelect";
@@ -44,7 +44,6 @@ export default function RegisterTherapist() {
   const [licenseDocUrl, setLicenseDocUrl] = useState("");
   const [form, setForm] = useState({ full_name: "", profession: "", license_number: "", about: "", city: "", phone: "", email: "", price_per_session: "", years_experience: "" });
   
-  // הוספנו סטייט חדש לזמינות המיידית
   const [immediateAvailability, setImmediateAvailability] = useState(false); 
   
   const [formats, setFormats] = useState([]);
@@ -139,7 +138,7 @@ export default function RegisterTherapist() {
       ...sanitizeFormData(form),
       price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
       years_experience: form.years_experience ? Number(form.years_experience) : undefined,
-      immediate_availability: immediateAvailability, // השדה נשלח למסד הנתונים!
+      immediate_availability: immediateAvailability,
       formats,
       hmo_affiliation: hmos,
       treatment_types: treatments,
@@ -208,6 +207,7 @@ export default function RegisterTherapist() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 bg-card border border-border rounded-2xl p-6">
+        
         {/* Profile photo upload */}
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-xl border-2 border-dashed border-border overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
@@ -254,7 +254,8 @@ export default function RegisterTherapist() {
           <Textarea value={form.about} onChange={e => setForm({...form, about: e.target.value})} placeholder={t.registerAboutPlaceholder || "ספר/י על גישת הטיפול שלך, ניסיונך והתמחויותיך..."} rows={4} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* סידור הגריד מחדש כדי שיהיה סימטרי ויפה */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label className="text-xs">{t.registerCity || "עיר"}</Label>
             <Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder={t.registerCityPlaceholder || "תל אביב"} />
@@ -273,18 +274,7 @@ export default function RegisterTherapist() {
           </div>
         </div>
 
-        {/* מתג הזמינות המיידית הוסף כאן - בולט וברור */}
-        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-4">
-          <div className="space-y-0.5">
-            <Label className="text-sm font-bold text-primary">{t.registerImmediateAvailabilityTitle || "זמינות לקבלת מטופלים"}</Label>
-            <p className="text-xs text-muted-foreground">{t.registerImmediateAvailabilityDesc || "האם יש לך פניות לקבל מטופלים חדשים באופן מיידי?"}</p>
-          </div>
-          <Switch 
-            checked={immediateAvailability} 
-            onCheckedChange={setImmediateAvailability} 
-          />
-        </div>
-
+        {/* אפשרויות הטיפול והשפות */}
         {checkboxGroup(t.registerFormat || "פורמט טיפול", formatOptions, formats, setFormats)}
         {checkboxGroup(t.registerHmo || "קופות חולים וחברות ביטוח", hmoOptions, hmos, setHmos)}
 
@@ -304,7 +294,7 @@ export default function RegisterTherapist() {
 
         {checkboxGroup(t.registerLanguages || "שפות טיפול", languageOptions, languages, setLanguages)}
 
-        {/* License document upload */}
+        {/* אזור העלאת הרישיון */}
         <div className="border border-dashed border-border rounded-xl p-4 space-y-2">
           <Label className="text-sm font-medium flex items-center gap-1.5">
             <FileText className="w-4 h-4" /> {t.registerLicenseDoc || "העלאת מסמך רישיון מקצועי (מומלץ)"}
@@ -322,7 +312,20 @@ export default function RegisterTherapist() {
           </label>
         </div>
 
-        <Button type="submit" disabled={loading} className="w-full font-bold">
+        {/* מתג הזמינות המיידית - הועבר לסוף הטופס, קרוב לכפתור השליחה */}
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-4 mt-8">
+          <div className="space-y-0.5 pl-4">
+            <Label className="text-sm font-bold text-primary">{t.registerImmediateAvailabilityTitle || "זמינות לקבלת מטופלים"}</Label>
+            <p className="text-xs text-muted-foreground">{t.registerImmediateAvailabilityDesc || "האם יש לך פניות לקבל מטופלים חדשים באופן מיידי?"}</p>
+          </div>
+          <Switch 
+            checked={immediateAvailability} 
+            onCheckedChange={setImmediateAvailability} 
+          />
+        </div>
+
+        {/* כפתור שליחה */}
+        <Button type="submit" disabled={loading} className="w-full font-bold mt-4">
           {loading ? (t.registerUploading || "שולח...") : t.registerSubmit}
         </Button>
 
