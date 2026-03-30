@@ -133,23 +133,54 @@ export default function RegisterTherapist() {
       return;
     }
     setLoading(true);
-    
-    const therapistData = {
-      ...sanitizeFormData(form),
-      price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
-      years_experience: form.years_experience ? Number(form.years_experience) : undefined,
-      immediate_availability: immediateAvailability,
-      formats,
-      hmo_affiliation: hmos,
-      treatment_types: treatments,
-      specializations,
-      languages,
-      photo_url: photoUrl || undefined,
-      license_document_url: licenseDocUrl || undefined,
-      status: "pending",
-    };
 
     try {
+      // --- תחילת הבדיקה: האם האימייל או הטלפון כבר קיימים במערכת? ---
+      const checkConditions = [];
+      if (form.email) checkConditions.push(`email.eq.${form.email}`);
+      if (form.phone) checkConditions.push(`phone.eq.${form.phone}`);
+
+      if (checkConditions.length > 0) {
+        const { data: existingRecords, error: checkError } = await supabase
+          .from("Therapist")
+          .select("email, phone")
+          .or(checkConditions.join(','));
+
+        if (checkError) throw checkError;
+
+        if (existingRecords && existingRecords.length > 0) {
+          const emailExists = form.email && existingRecords.some(r => r.email === form.email);
+          const phoneExists = form.phone && existingRecords.some(r => r.phone === form.phone);
+
+          if (emailExists && phoneExists) {
+            toast.error("האימייל ומספר הטלפון כבר רשומים במערכת.");
+          } else if (emailExists) {
+            toast.error("כתובת האימייל הזו כבר רשומה במערכת.");
+          } else if (phoneExists) {
+            toast.error("מספר הטלפון הזה כבר רשום במערכת.");
+          }
+          
+          setLoading(false);
+          return; // עוצרים את ההרשמה
+        }
+      }
+      // --- סוף הבדיקה ---
+      
+      const therapistData = {
+        ...sanitizeFormData(form),
+        price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
+        years_experience: form.years_experience ? Number(form.years_experience) : undefined,
+        immediate_availability: immediateAvailability,
+        formats,
+        hmo_affiliation: hmos,
+        treatment_types: treatments,
+        specializations,
+        languages,
+        photo_url: photoUrl || undefined,
+        license_document_url: licenseDocUrl || undefined,
+        status: "pending",
+      };
+
       const { error } = await supabase.from("Therapist").insert(therapistData);
       if (error) throw error;
 
