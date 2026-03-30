@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
-import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send, X, Phone } from "lucide-react";
+import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send, Phone, X } from "lucide-react";
 import { buildLabelMap, SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { toast } from "sonner";
 import { sanitizeFormData } from "@/utils/sanitize";
@@ -23,11 +23,140 @@ const langLabels = { hebrew: "עברית", english: "אנגלית", arabic: "ע�
 const specLabels = buildLabelMap(SPECIALIZATION_GROUPS, "he");
 const treatmentLabels = buildLabelMap(TREATMENT_METHOD_GROUPS, "he");
 
+// פונקציית העזר ל-reCAPTCHA
+async function getRecaptchaToken(action) {
+  return new Promise((resolve) => {
+    if (!window.grecaptcha) { resolve(null); return; }
+    window.grecaptcha.ready(() => {
+      window.grecaptcha
+        .execute("6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI", { action })
+        .then(resolve)
+        .catch(() => resolve(null));
+    });
+  });
+}
+
+// קומפוננטת המודל לחשיפת טלפון
+function PhoneRevealModal({ therapist, open, onClose }) {
+  const [form, setForm] = useState({ patient_name: "", contact_info: "" });
+  const [revealed, setRevealed] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      // 1. אימות reCAPTCHA
+      const token = await getRecaptchaToken("phone_reveal");
+      if (token) {
+        // הערה: יש לוודא שיש לך Edge Function בסופאבייס בשם verifyRecaptcha
+        const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
+        if (captchaError || !captchaRes?.success) throw new Error("אימות אנושי נכשל. נסה שוב.");
+      }
+
+      // 2. שמירת הליד (חשיפת טלפון) בסופאבייס
+      const { error: contactError } = await supabase.from("ContactRequest").insert({
+        therapist_id: therapist.id,
+        patient_name: sanitizeFormData(form).patient_name,
+        patient_phone: sanitizeFormData(form).contact_info, // שומרים את מה שהוזן (טלפון או אימייל) בתיבה הרלוונטית
+        contact_type: "phone_reveal",
+        status: "responded",
+        created_date: new Date().toISOString(),
+      });
+      if (contactError) throw contactError;
+
+      // 3. עדכון מונה הלידים הכללי של המטפל
+      const currentLeads = therapist.lead_count || 0;
+      const { error: therapistError } = await supabase
+        .from("Therapist")
+        .update({ lead_count: currentLeads + 1 })
+        .eq("id", therapist.id);
+      if (therapistError) throw therapistError;
+    },
+    onSuccess: () => {
+      setRevealed(true);
+      toast.success("המספר נחשף בהצלחה!");
+    },
+    onError: (error) => {
+      console.error("Error revealing phone:", error);
+      toast.error(error.message || "שגיאה בחשיפת המספר, נסה שוב.");
+    }
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.patient_name || !form.contact_info) {
+      toast.error("יש למלא את כל השדות");
+      return;
+    }
+    mutation.mutate();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1">
+          <X className="w-5 h-5" />
+        </button>
+        
+        <div className="p-6 sm:p-8">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+            <Phone className="w-6 h-6 text-emerald-600" />
+          </div>
+          <h2 className="text-xl font-bold text-center mb-2">צפייה במספר טלפון</h2>
+          
+          {revealed ? (
+            <div className="text-center space-y-4 py-4">
+              <p className="text-muted-foreground">המספר של {therapist.full_name}:</p>
+              <a href={`tel:${therapist.phone}`} className="inline-block text-3xl font-black text-primary hover:underline" dir="ltr">
+                {therapist.phone}
+              </a>
+              <Button onClick={onClose} className="w-full mt-4" variant="outline">סגור</Button>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                כדי לראות את המספר, אנא השאר פרטים בסיסיים והוכח שאינך רובוט.
+              </p>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>שם מלא *</Label>
+                  <Input 
+                    value={form.patient_name} 
+                    onChange={e => setForm({...form, patient_name: e.target.value})} 
+                    placeholder="ישראל ישראלי" 
+                    required 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>טלפון / אימייל חלופי *</Label>
+                  <Input 
+                    value={form.contact_info} 
+                    onChange={e => setForm({...form, contact_info: e.target.value})} 
+                    placeholder="איך אפשר לחזור אליך במקרה הצורך?" 
+                    required 
+                  />
+                </div>
+                
+                <div className="text-xs text-muted-foreground text-center pt-2">
+                  לחיצה על חשיפת מספר מהווה אישור לאימות אנושי (reCAPTCHA)
+                </div>
+
+                <Button type="submit" disabled={mutation.isPending} className="w-full font-bold bg-emerald-500 hover:bg-emerald-600 text-white mt-2">
+                  {mutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin ml-2" />מאמת ומציג...</> : "אני לא רובוט - הצג מספר"}
+                </Button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContactForm({ therapist }) {
   const [form, setForm] = useState({ patient_name: "", patient_email: "", patient_phone: "", message: "", preferred_format: "", tos_accepted: false });
   const [submitted, setSubmitted] = useState(false);
 
-  // Block form if therapist is not available
   if (!therapist.immediate_availability) {
     return (
       <div className="text-center py-6 space-y-2">
@@ -42,7 +171,12 @@ function ContactForm({ therapist }) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      // 1. שמירת הפנייה בדאטאבייס
+      const token = await getRecaptchaToken("contact_form");
+      if (token) {
+        const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
+        if (captchaError || !captchaRes?.success) throw new Error("אימות אנושי נכשל. נסה שוב.");
+      }
+
       const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         ...sanitizeFormData(form),
@@ -50,49 +184,27 @@ function ContactForm({ therapist }) {
         status: "pending", 
         created_date: new Date().toISOString(),
       });
-      
       if (contactError) throw contactError;
 
-      // 2. עדכון מונה הלידים של המטפל
       const currentLeads = therapist.lead_count || 0;
       const { error: therapistError } = await supabase
         .from("Therapist")
         .update({ lead_count: currentLeads + 1 })
         .eq("id", therapist.id);
-        
       if (therapistError) throw therapistError;
-
-      // 3. שליחת אימייל התראה למטפל (ללא פרטים רפואיים חסויים!)
-      try {
-        await fetch('/api/notify-therapist', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            therapistEmail: therapist.email,
-            therapistName: therapist.full_name,
-            patientName: form.patient_name,
-            patientPhone: form.patient_phone,
-          }),
-        });
-      } catch (emailError) {
-        console.error("Failed to send email notification to therapist:", emailError);
-      }
     },
     onSuccess: () => {
       setSubmitted(true);
       toast.success("הפנייה נשלחה בהצלחה!");
     },
     onError: (error) => {
-      console.error("Submission error:", error);
-      toast.error("שגיאה בשליחת הפנייה");
+      toast.error(error.message || "שגיאה בשליחת הפנייה");
     }
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.tos_accepted) { toast.error("יש לאשר את תנאי השימוש ומדיניות הפרטיות"); return; }
+    if (!form.tos_accepted) { toast.error("יש לאשר את תנאי השימוש"); return; }
     if (!form.patient_name || !form.patient_email) { toast.error("יש למלא שם ואימייל"); return; }
     mutation.mutate();
   };
@@ -150,9 +262,9 @@ function ContactForm({ therapist }) {
       <div className="bg-muted/50 rounded-xl p-3 flex items-start gap-3">
         <Checkbox id="tos" checked={form.tos_accepted} onCheckedChange={v => setForm({...form, tos_accepted: v})} className="mt-0.5" />
         <label htmlFor="tos" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-          קראתי ואני מסכים/ה ל<Link to="/terms" className="text-primary underline mx-1">תנאי השימוש</Link> 
-          ול<Link to="/privacy" className="text-primary underline mx-1">מדיניות הפרטיות</Link>, 
-          ואני מאשר/ת את איסוף המידע והעברתו למטפל/ת. ידוע לי כי הפלטפורמה מקשרת בלבד ואינה אחראית על הטיפול עצמו.
+          קראתי ואני מסכים/ה ל
+          <Link to="/terms" className="text-primary underline mx-1">תנאי השימוש</Link>
+          ומבין/ה כי הפלטפורמה אינה אחראית לתהליך הטיפול עצמו.
         </label>
       </div>
 
@@ -166,10 +278,7 @@ function ContactForm({ therapist }) {
 export default function TherapistProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [selectedImage, setSelectedImage] = useState(null);
-  
-  // משתנה הסטייט החדש לחשיפת הטלפון
-  const [showPhone, setShowPhone] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const { data: therapist, isLoading } = useQuery({
     queryKey: ["therapist", id],
@@ -179,33 +288,6 @@ export default function TherapistProfile() {
       return data?.[0] ?? null;
     },
   });
-
-  // פונקציית חשיפת הטלפון החדשה ששולחת נתונים לסופאבייס
-  const handlePhoneReveal = async () => {
-    if (showPhone) return; // מניעת לחיצה כפולה
-    setShowPhone(true);
-
-    try {
-      // 1. שמירת הפעולה במסד הנתונים כדי שהאדמין יראה זאת
-      await supabase.from("ContactRequest").insert({
-        therapist_id: therapist.id,
-        contact_type: "phone_reveal", // מוגדר כחשיפת טלפון
-        status: "responded", // סטטוס סגור אוטומטית כי אין צורך לענות לזה
-        patient_name: "חשיפת טלפון (אנונימי)",
-        created_date: new Date().toISOString(),
-      });
-
-      // 2. עדכון מונה הלידים הכללי של המטפל
-      const currentLeads = therapist.lead_count || 0;
-      await supabase
-        .from("Therapist")
-        .update({ lead_count: currentLeads + 1 })
-        .eq("id", therapist.id);
-
-    } catch (error) {
-      console.error("Error logging phone reveal:", error);
-    }
-  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-[50vh]">
@@ -220,209 +302,196 @@ export default function TherapistProfile() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-        <ArrowRight className="w-4 h-4" />
-        חזרה לחיפוש
-      </button>
+    <>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+          <ArrowRight className="w-4 h-4" />
+          חזרה לחיפוש
+        </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Header card */}
-          <div className="bg-card border border-border rounded-2xl p-7">
-            <div className="flex gap-6 flex-wrap">
-              <div className="w-32 h-32 rounded-2xl overflow-hidden bg-accent flex-shrink-0 shadow">
-                {therapist.photo_url ? (
-                  <img 
-                    src={therapist.photo_url} 
-                    alt={therapist.full_name} 
-                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300" 
-                    onClick={() => setSelectedImage(therapist.photo_url)}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-primary/40">
-                    {therapist.full_name?.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h1 className="text-2xl font-bold">{therapist.full_name}</h1>
-                  {therapist.license_verified && (
-                    <div className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-sm font-medium">
-                      <BadgeCheck className="w-4 h-4" />
-                      רישיון מאומת
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main content */}
+          <div className="lg:col-span-2 space-y-5">
+            {/* Header card */}
+            <div className="bg-card border border-border rounded-2xl p-7">
+              <div className="flex gap-6 flex-wrap">
+                <div className="w-32 h-32 rounded-2xl overflow-hidden bg-accent flex-shrink-0 shadow">
+                  {therapist.photo_url ? (
+                    <img src={therapist.photo_url} alt={therapist.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-primary/40">
+                      {therapist.full_name?.charAt(0)}
                     </div>
                   )}
                 </div>
-                <p className="text-muted-foreground text-base mt-0.5">{professionLabels[therapist.profession]}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h1 className="text-2xl font-bold">{therapist.full_name}</h1>
+                    {therapist.license_verified && (
+                      <div className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-sm font-medium">
+                        <BadgeCheck className="w-4 h-4" />
+                        רישיון מאומת
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-base mt-0.5">{professionLabels[therapist.profession]}</p>
 
-                <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-sm font-semibold ${
-                  therapist.immediate_availability
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-muted text-muted-foreground"
-                }`}>
-                  {therapist.immediate_availability
-                    ? <><CheckCircle2 className="w-3.5 h-3.5" /> פתוח/ה למטופלים חדשים</>
-                    : <><XCircle className="w-3.5 h-3.5" /> לא זמין/ה כעת</>
-                  }
-                </div>
+                  <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-sm font-semibold ${
+                    therapist.immediate_availability
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {therapist.immediate_availability
+                      ? <><CheckCircle2 className="w-3.5 h-3.5" /> פתוח/ה למטופלים חדשים</>
+                      : <><XCircle className="w-3.5 h-3.5" /> לא זמין/ה כעת</>
+                    }
+                  </div>
 
-                <div className="flex flex-wrap gap-3 mt-3">
-                  {therapist.city && (
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4" />{therapist.city}
-                    </span>
-                  )}
-                  {therapist.years_experience && (
-                    <span className="text-sm text-muted-foreground">{therapist.years_experience} שנות ניסיון</span>
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    {therapist.city && (
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4" />{therapist.city}
+                      </span>
+                    )}
+                    {therapist.years_experience && (
+                      <span className="text-sm text-muted-foreground">{therapist.years_experience} שנות ניסיון</span>
+                    )}
+                  </div>
+                  {therapist.languages?.length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <Languages className="w-4 h-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">{therapist.languages.map(l => langLabels[l] || l).join(", ")}</span>
+                    </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* About section */}
+            {therapist.about && (
+              <div className="bg-card border border-border rounded-2xl p-7">
+                <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  אודות המטפל/ת
+                </h2>
+                <p className="text-base text-muted-foreground leading-relaxed">{therapist.about}</p>
+                <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700">
+                    כל מה שכתוב באודות המטפל/ת הוא באחריותו/ה הבלעדית. הפלטפורמה אינה אחראית לתוכן שנכתב על ידי המטפלים.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Specializations */}
+            {therapist.specializations?.length > 0 && (
+              <div className="bg-card border border-border rounded-2xl p-7">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                  תחומי התמחות
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {therapist.specializations.map(s => (
+                    <Badge key={s} variant="secondary" className="text-sm px-3 py-1">{specLabels[s] || s}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Treatment methods */}
+            {therapist.treatment_types?.length > 0 && (
+              <div className="bg-card border border-border rounded-2xl p-7">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-primary" />
+                  שיטות וגישות טיפוליות
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {therapist.treatment_types.map(t => (
+                    <Badge key={t} className="bg-accent text-accent-foreground text-sm px-3 py-1">{treatmentLabels[t] || t}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-4">
+            <div className="bg-card border border-border rounded-2xl p-6 sticky top-20">
+              {therapist.price_per_session && (
+                <div className="mb-5 text-center pb-5 border-b border-border">
+                  <div className="text-4xl font-black text-foreground">₪{therapist.price_per_session}</div>
+                  <div className="text-sm text-muted-foreground">לפגישה</div>
+                </div>
+              )}
+
+              {/* === כפתור הפעימות הבולט === */}
+              {therapist.phone && (
+                <div className="mb-6 relative">
+                  <button
+                    onClick={() => setShowPhoneModal(true)}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl"
+                    style={{ animation: "phonePulse 2s infinite" }}
+                  >
+                    <Phone className="w-5 h-5" />
+                    הצג מספר טלפון
+                  </button>
+                  <style>{`
+                    @keyframes phonePulse {
+                      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); transform: scale(1); }
+                      70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); transform: scale(1.02); }
+                      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); transform: scale(1); }
+                    }
+                  `}</style>
+                </div>
+              )}
+
+              <div className="border-b border-border pb-5 mb-5 space-y-3">
+                {therapist.formats?.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Video className="w-4 h-4 text-primary" />
+                    {therapist.formats.map(f => formatLabels[f]).join(", ")}
+                  </div>
+                )}
+                {therapist.hmo_affiliation?.length > 0 && (
+                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Users className="w-4 h-4 text-primary mt-0.5" />
+                    <span>{therapist.hmo_affiliation.map(h => hmoLabels[h]).join(", ")}</span>
+                  </div>
+                )}
                 {therapist.languages?.length > 0 && (
-                  <div className="flex items-center gap-1.5 mt-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Languages className="w-4 h-4 text-primary" />
-                    <span className="text-sm text-muted-foreground">{(therapist.languages || []).map(l => langLabels[l] || l).join(", ")}</span>
+                    {therapist.languages.map(l => langLabels[l] || l).join(", ")}
+                  </div>
+                )}
+                {therapist.website && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Globe className="w-4 h-4 text-primary" />
+                    <a href={therapist.website} target="_blank" rel="noreferrer" className="hover:text-foreground truncate">אתר אינטרנט</a>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* About section */}
-          {therapist.about && (
-            <div className="bg-card border border-border rounded-2xl p-7">
-              <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                אודות המטפל/ת
-              </h2>
-              <p className="text-base text-muted-foreground leading-relaxed">{therapist.about}</p>
-              <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700">
-                  כל מה שכתוב באודות המטפל/ת הוא באחריותו/ה הבלעדית. הפלטפורמה אינה אחראית לתוכן שנכתב על ידי המטפלים.
-                </p>
-              </div>
-            </div>
-          )}
+              {/* Inline Contact Form */}
+              <ContactForm therapist={therapist} />
 
-          {/* Specializations */}
-          {therapist.specializations?.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-7">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-primary" />
-                תחומי התמחות
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {(therapist.specializations || []).map(s => (
-                  <Badge key={s} variant="secondary" className="text-sm px-3 py-1">{specLabels[s] || s}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Treatment methods */}
-          {therapist.treatment_types?.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-7">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-primary" />
-                שיטות וגישות טיפוליות
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {(therapist.treatment_types || []).map(t => (
-                  <Badge key={t} className="bg-accent text-accent-foreground text-sm px-3 py-1">{treatmentLabels[t] || t}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          <div className="bg-card border border-border rounded-2xl p-6 sticky top-20">
-            {therapist.price_per_session && (
-              <div className="mb-5 text-center pb-5 border-b border-border">
-                <div className="text-4xl font-black text-foreground">₪{therapist.price_per_session}</div>
-                <div className="text-sm text-muted-foreground">לפגישה</div>
-              </div>
-            )}
-
-            <div className="border-b border-border pb-5 mb-5 space-y-3">
-              
-              {/* === תוספת: לחצן חשיפת טלפון === */}
-              {therapist.phone && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="w-4 h-4 text-primary" />
-                  {showPhone ? (
-                    <a href={`tel:${therapist.phone}`} className="hover:text-primary font-bold text-foreground transition-colors" dir="ltr">
-                      {therapist.phone}
-                    </a>
-                  ) : (
-                    <button onClick={handlePhoneReveal} className="hover:text-primary underline transition-colors">
-                      הצג מספר טלפון
-                    </button>
-                  )}
-                </div>
-              )}
-              {/* ================================= */}
-
-              {therapist.formats?.length > 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Video className="w-4 h-4 text-primary" />
-                  {therapist.formats.map(f => formatLabels[f]).join(", ")}
-                </div>
-              )}
-              {therapist.hmo_affiliation?.length > 0 && (
-                <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Users className="w-4 h-4 text-primary mt-0.5" />
-                  <span>{therapist.hmo_affiliation.map(h => hmoLabels[h]).join(", ")}</span>
-                </div>
-              )}
-              {therapist.languages?.length > 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Languages className="w-4 h-4 text-primary" />
-                  {therapist.languages.map(l => langLabels[l] || l).join(", ")}
-                </div>
-              )}
-              {therapist.website && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Globe className="w-4 h-4 text-primary" />
-                  <a href={therapist.website} target="_blank" rel="noreferrer" className="hover:text-foreground truncate">אתר אינטרנט</a>
+              {therapist.license_number && (
+                <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground text-center">
+                  מספר רישיון: {therapist.license_number}
                 </div>
               )}
             </div>
-
-            {/* Inline Contact Form */}
-            <ContactForm therapist={therapist} />
-
-            {therapist.license_number && (
-              <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground text-center">
-                מספר רישיון: {therapist.license_number}
-              </div>
-            )}
           </div>
         </div>
       </div>
-      {/* מודל הגדלת תמונה */}
-      {selectedImage && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={() => setSelectedImage(null)}
-        >
-          <button 
-            className="absolute top-4 right-4 md:top-8 md:right-8 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-colors"
-            onClick={() => setSelectedImage(null)}
-          >
-            <X className="w-8 h-8" />
-          </button>
-          <img 
-            src={selectedImage} 
-            alt="תמונת מטפל מוגדלת" 
-            className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain"
-            onClick={(e) => e.stopPropagation()} 
-          />
-        </div>
-      )}
-    </div>
+
+      {/* קריאה למודל חשיפת הטלפון */}
+      <PhoneRevealModal
+        therapist={therapist}
+        open={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+      />
+    </>
   );
 }
