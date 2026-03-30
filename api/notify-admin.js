@@ -35,6 +35,7 @@ export default async function handler(req, res) {
 
     res.status(200).json(data);
   } catch (error) {
+    console.error("Resend Error:", error); // זה ידפיס את השגיאה המפורטת בלוגים של ורסל
     res.status(400).json({ error: error.message });
   }
 }
