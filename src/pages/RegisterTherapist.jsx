@@ -281,7 +281,7 @@ export default function RegisterTherapist() {
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs">{t.registerAbout || "אודות"}</Label>
+          <Label className="text-xs">{t.registerAbout || "אודות"} *</Label>
           <Textarea value={form.about} onChange={e => setForm({...form, about: e.target.value})} placeholder={t.registerAboutPlaceholder || "ספר/י על גישת הטיפול שלך, ניסיונך והתמחויותיך..."} rows={4} />
         </div>
 
@@ -296,11 +296,11 @@ export default function RegisterTherapist() {
             <Input type="number" value={form.price_per_session} onChange={e => setForm({...form, price_per_session: e.target.value})} placeholder="350" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">{t.registerPhone || "טלפון"}</Label>
+            <Label className="text-xs">{t.registerPhone || "טלפון"} *</Label>
             <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="050-0000000" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">{t.registerEmail || "אימייל"}</Label>
+            <Label className="text-xs">{t.registerEmail || "אימייל"} *</Label>
             <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" />
           </div>
         </div>
@@ -310,7 +310,7 @@ export default function RegisterTherapist() {
         {checkboxGroup(t.registerHmo || "קופות חולים וחברות ביטוח", hmoOptions, hmos, setHmos)}
 
         <GroupedCheckboxSelect
-          label={t.registerTreatmentMethods || "שיטות טיפול"}
+          label={t.registerTreatmentMethods || "שיטות טיפול" }
           groups={TREATMENT_METHOD_GROUPS}
           selected={treatments}
           onChange={setTreatments}
