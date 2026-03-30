@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     const data = await resend.emails.send({
       from: 'Acme <onboarding@resend.dev>', // כרגע זה ישלח מכתובת הטסטים של Resend
-      to: ['itaykorin@GMAIL.COM'], // <<< תשנה את זה לאימייל שלך (האדמין)
+      to: ['itaykorin@gmail.com'], // <<< תשנה את זה לאימייל שלך (האדמין)
       subject: '🎉 מטפל חדש נרשם וממתין לאישור!',
       html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">

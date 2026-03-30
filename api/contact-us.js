@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   try {
     const data = await resend.emails.send({
       from: 'Acme <onboarding@resend.dev>', // בטסטים זה נשאר ככה
-      to: ['YOUR_EMAIL@GMAIL.COM'], // <<< תשנה לאימייל שלך!
+      to: ['itaykorin@gmail.com'], // <<< תשנה לאימייל שלך!
       subject: `✉️ הודעה חדשה מטופס צור קשר: ${name}`,
       html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
