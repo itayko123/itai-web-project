@@ -17,6 +17,29 @@ import PortalArticles from "@/components/therapist/PortalArticles";
 import GroupedCheckboxSelect from "@/components/therapist/GroupedCheckboxSelect";
 import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 
+// אפשרויות לבחירה מהירה - ניתן להתאים לפי הצורך
+const FORMAT_OPTIONS = [
+  { label: 'קליניקה / פנים אל פנים', value: 'in_person' },
+  { label: 'זום / אונליין', value: 'zoom' },
+  { label: 'טלפוני', value: 'phone' }
+];
+
+const HMO_OPTIONS = [
+  { label: 'כללית', value: 'clalit' },
+  { label: 'מכבי', value: 'maccabi' },
+  { label: 'מאוחדת', value: 'meuhedet' },
+  { label: 'לאומית', value: 'leumit' },
+  { label: 'פרטי (ללא קופה)', value: 'private' }
+];
+
+const LANGUAGE_OPTIONS = [
+  { label: 'עברית', value: 'hebrew' },
+  { label: 'אנגלית', value: 'english' },
+  { label: 'רוסית', value: 'russian' },
+  { label: 'ערבית', value: 'arabic' },
+  { label: 'צרפתית', value: 'french' }
+];
+
 const checkboxGroup = (label, items, selected, setSelected) => (
   <div className="space-y-1">
     <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
@@ -49,7 +72,7 @@ const getWhatsAppLink = (phone, patientName) => {
 
   // הודעה מוכנה מראש שתחסוך למטפל הקלדה
   const nameToGreet = patientName || 'שלום';
-  const message = encodeURIComponent(`שלום ,${nameToGreet}, ראיתי שהשארת לי פנייה באתר... `);
+  const message = encodeURIComponent(`שלום ${nameToGreet}, ראיתי שהשארת לי פנייה באתר... `);
   
   return `https://wa.me/${cleaned}?text=${message}`;
 };
@@ -81,7 +104,7 @@ export default function TherapistPortal() {
 
   const therapist = therapistList[0];
 
-const { data: requests = [] } = useQuery({
+  const { data: requests = [] } = useQuery({
     queryKey: ["my-contact-requests", therapist?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -94,12 +117,9 @@ const { data: requests = [] } = useQuery({
       
       // מיון חכם: קודם לפי סטטוס (חדש למעלה), ואז לפי התאריך
       const sortedData = (data || []).sort((a, b) => {
-        // 1. העדפה לסטטוס "חדש" (pending)
         if (a.status === 'pending' && b.status !== 'pending') return -1;
         if (a.status !== 'pending' && b.status === 'pending') return 1;
 
-        // 2. אם שניהם באותו סטטוס, נמיין לפי זמן
-        // getTime() הופך את התאריך למספר כדי שיהיה קל להשוות
         const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
         const dateB = b.created_date ? new Date(b.created_date).getTime() : 0;
         
@@ -111,8 +131,7 @@ const { data: requests = [] } = useQuery({
     enabled: !!therapist?.id,
   });
 
-const updateMutation = useMutation({
-    // הוספנו פה הערה קטנה שאומרת ל-VS Code שהמידע הוא אובייקט
+  const updateMutation = useMutation({
     mutationFn: async (/** @type {any} */ data) => {
       const { error } = await supabase.from("Therapist").update(data).eq("id", therapist.id);
       if (error) throw error;
@@ -137,9 +156,8 @@ const updateMutation = useMutation({
       return data;
     },
     onSuccess: () => {
-      // תיקון: השתמשנו ב-qc וב-queryKey הנכון
       qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
-      toast.success("פעולת העדכון בוטלה");
+      toast.success("פעולת העדכון בוטלה, הפנייה חזרה לסטטוס חדש");
     }
   });
 
@@ -159,8 +177,6 @@ const updateMutation = useMutation({
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["my-contact-requests"] });
-      
-      // שיניתי ל-toast.success כדי שזה יהיה בולט
       toast.success('הפנייה סומנה כטופלה', {
         action: {
           label: 'ביטול',
@@ -215,7 +231,7 @@ const updateMutation = useMutation({
     });
   };
 
-const handlePhotoUpload = async (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
@@ -249,7 +265,7 @@ const handlePhotoUpload = async (e) => {
     const fileUrl = await uploadTherapistFile(file, "licenses");
     await supabase.from("Therapist").update({ license_document_url: fileUrl }).eq("id", therapist.id);
     qc.invalidateQueries({ queryKey: ["my-therapist-profile"] });
-    toast.success("הרישיון הועלה");
+    toast.success("הרישיון הועלה בהצלחה");
     setUploadingLicense(false);
   };
 
@@ -268,7 +284,7 @@ const handlePhotoUpload = async (e) => {
                 <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-primary/60">{therapist.full_name?.charAt(0)}</div>
               )}
             </div>
-            <label className="absolute -bottom-2 -left-2 w-7 h-7 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/80">
+            <label className="absolute -bottom-2 -left-2 w-7 h-7 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/80 transition-colors">
               {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Upload className="w-3.5 h-3.5 text-white" />}
               <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
             </label>
@@ -287,7 +303,7 @@ const handlePhotoUpload = async (e) => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className={`bg-card border rounded-xl p-4 text-center ${pendingCount > 0 ? "border-primary/40 bg-primary/5" : ""}`}>
+        <div className={`bg-card border rounded-xl p-4 text-center ${pendingCount > 0 ? "border-primary/40 bg-primary/5 shadow-sm" : ""}`}>
           <div className="text-2xl font-black">{pendingCount}</div>
           <div className="text-xs text-muted-foreground">פניות חדשות</div>
         </div>
@@ -298,9 +314,9 @@ const handlePhotoUpload = async (e) => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-5 border-b overflow-x-auto">
+      <div className="flex gap-2 mb-5 border-b overflow-x-auto pb-1">
         {tabs.map((t, i) => (
-          <button key={i} onClick={() => setTab(i)} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === i ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
+          <button key={i} onClick={() => setTab(i)} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${tab === i ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
             {t} {i === 0 && pendingCount > 0 && <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full mr-1">{pendingCount}</span>}
           </button>
         ))}
@@ -311,7 +327,7 @@ const handlePhotoUpload = async (e) => {
         <div className="space-y-4">
           {requests.length === 0 && <p className="text-center py-12 text-muted-foreground text-sm">אין פניות עדיין</p>}
           {requests.map(r => (
-            <div key={r.id} className={`bg-card border rounded-xl p-5 ${(!r.status || r.status === "pending") ? "border-primary/40 shadow-sm" : "border-border opacity-70"}`}>
+            <div key={r.id} className={`bg-card border rounded-xl p-5 ${(!r.status || r.status === "pending") ? "border-primary/40 shadow-sm" : "border-border opacity-70 hover:opacity-100 transition-opacity"}`}>
               <div className="flex flex-col gap-4">
                 
                 {/* חלק עליון: פרטים וסטטוס */}
@@ -335,9 +351,9 @@ const handlePhotoUpload = async (e) => {
                     {r.preferred_format && (
                       <Badge variant="outline" className="text-[10px] bg-muted/30">
                         {r.preferred_format === 'zoom' ? 'זום' : 
-                        r.preferred_format === 'in_person' ? 'פנים אל פנים' : 
-                        r.preferred_format === 'phone' ? 'טלפון' : 
-                        r.preferred_format}
+                         r.preferred_format === 'in_person' ? 'פנים אל פנים' : 
+                         r.preferred_format === 'phone' ? 'טלפון' : 
+                         r.preferred_format}
                       </Badge>
                     )}
                   </div>
@@ -388,10 +404,19 @@ const handlePhotoUpload = async (e) => {
             <div className="space-y-4">
               <Input placeholder="שם מלא" value={editData.full_name} onChange={e => setEditData(d => ({...d, full_name: e.target.value}))} />
               <Textarea placeholder="אודות" value={editData.about} onChange={e => setEditData(d => ({...d, about: e.target.value}))} rows={4} />
-              <div className="grid grid-cols-2 gap-3">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input placeholder="טלפון" value={editData.phone} onChange={e => setEditData(d => ({...d, phone: e.target.value}))} />
-                <Input placeholder="מחיר" type="number" value={editData.price_per_session} onChange={e => setEditData(d => ({...d, price_per_session: e.target.value}))} />
+                <Input placeholder="עיר" value={editData.city} onChange={e => setEditData(d => ({...d, city: e.target.value}))} />
+                <Input placeholder="כתובת מלאה (אופציונלי)" value={editData.address} onChange={e => setEditData(d => ({...d, address: e.target.value}))} />
+                <Input placeholder="אתר אינטרנט (אופציונלי)" value={editData.website} onChange={e => setEditData(d => ({...d, website: e.target.value}))} />
+                <Input placeholder="מחיר לפגישה (בשקלים)" type="number" value={editData.price_per_session} onChange={e => setEditData(d => ({...d, price_per_session: e.target.value}))} />
+                <Input placeholder="שנות ניסיון" type="number" value={editData.years_experience} onChange={e => setEditData(d => ({...d, years_experience: e.target.value}))} />
               </div>
+
+              {checkboxGroup("פורמט טיפול", FORMAT_OPTIONS, editFormats, setEditFormats)}
+              {checkboxGroup("קופות חולים", HMO_OPTIONS, editHmos, setEditHmos)}
+              {checkboxGroup("שפות", LANGUAGE_OPTIONS, editLanguages, setEditLanguages)}
               
               <GroupedCheckboxSelect label="שיטות טיפול" groups={TREATMENT_METHOD_GROUPS} selected={editTreatments} onChange={setEditTreatments} />
               <GroupedCheckboxSelect label="התמחויות" groups={SPECIALIZATION_GROUPS} selected={editSpecs} onChange={setEditSpecs} />
@@ -401,16 +426,64 @@ const handlePhotoUpload = async (e) => {
                 <Switch checked={editData.immediate_availability} onCheckedChange={v => setEditData(d => ({...d, immediate_availability: v}))} />
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleSave} disabled={updateMutation.isPending}>{updateMutation.isPending ? "שומר..." : "שמור שינויים"}</Button>
-                <Button variant="outline" onClick={() => setEditMode(false)}>ביטול</Button>
+              <div className="flex gap-2 pt-2 border-t">
+                <Button onClick={handleSave} disabled={updateMutation.isPending} className="flex-1 sm:flex-none">
+                  {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Save className="w-4 h-4 ml-2" />}
+                  {updateMutation.isPending ? "שומר..." : "שמור שינויים"}
+                </Button>
+                <Button variant="outline" onClick={() => setEditMode(false)} className="flex-1 sm:flex-none">ביטול</Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              <p className="text-sm"><span className="font-bold">אודות:</span> {therapist.about}</p>
-              <p className="text-sm"><span className="font-bold">עיר:</span> {therapist.city}</p>
-              <Button size="sm" onClick={startEdit} variant="outline">ערוך פרטים</Button>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">אודות</h3>
+                    <p className="text-sm leading-relaxed">{therapist.about || <span className="text-muted-foreground italic">לא הוזן</span>}</p>
+                  </div>
+                  
+                  <div className="space-y-2 bg-muted/10 p-4 rounded-xl border border-border/50">
+                    <p className="text-sm flex justify-between"><span className="font-bold">טלפון:</span> <span>{therapist.phone || '-'}</span></p>
+                    <p className="text-sm flex justify-between"><span className="font-bold">עיר:</span> <span>{therapist.city || '-'}</span></p>
+                    <p className="text-sm flex justify-between"><span className="font-bold">כתובת:</span> <span>{therapist.address || '-'}</span></p>
+                    <p className="text-sm flex justify-between">
+                      <span className="font-bold">אתר:</span> 
+                      <span>{therapist.website ? <a href={therapist.website} target="_blank" rel="noreferrer" className="text-primary hover:underline">קישור לאתר</a> : '-'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2 bg-muted/10 p-4 rounded-xl border border-border/50">
+                    <p className="text-sm flex justify-between"><span className="font-bold">זמינות מיידית:</span> <span>{therapist.immediate_availability ? 'כן' : 'לא'}</span></p>
+                    <p className="text-sm flex justify-between"><span className="font-bold">מחיר לפגישה:</span> <span>{therapist.price_per_session ? `₪${therapist.price_per_session}` : '-'}</span></p>
+                    <p className="text-sm flex justify-between"><span className="font-bold">שנות ניסיון:</span> <span>{therapist.years_experience || '-'}</span></p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">פורמט טיפול</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {therapist.formats?.length > 0 ? therapist.formats.map(f => (
+                        <Badge key={f} variant="secondary" className="font-normal">{FORMAT_OPTIONS.find(opt => opt.value === f)?.label || f}</Badge>
+                      )) : <span className="text-sm text-muted-foreground">לא צוין</span>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">שפות</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {therapist.languages?.length > 0 ? therapist.languages.map(l => (
+                        <Badge key={l} variant="secondary" className="font-normal">{LANGUAGE_OPTIONS.find(opt => opt.value === l)?.label || l}</Badge>
+                      )) : <span className="text-sm text-muted-foreground">לא צוין</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <Button onClick={startEdit} className="w-full sm:w-auto"><Edit2 className="w-4 h-4 ml-2" /> ערוך פרטי פרופיל</Button>
+              </div>
             </div>
           )}
         </div>

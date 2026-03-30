@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
-import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send ,X} from "lucide-react";
+import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send, X, Phone } from "lucide-react";
 import { buildLabelMap, SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { toast } from "sonner";
 import { sanitizeFormData } from "@/utils/sanitize";
@@ -40,7 +40,7 @@ function ContactForm({ therapist }) {
     );
   }
 
-const mutation = useMutation({
+  const mutation = useMutation({
     mutationFn: async () => {
       // 1. שמירת הפנייה בדאטאבייס
       const { error: contactError } = await supabase.from("ContactRequest").insert({
@@ -77,8 +77,6 @@ const mutation = useMutation({
           }),
         });
       } catch (emailError) {
-        // אנחנו תופסים את השגיאה פה ולא זורקים אותה הלאה כדי שהמטופל
-        // עדיין יקבל הודעת "הפנייה נשלחה בהצלחה" (היא הרי נשמרה ב-Supabase)
         console.error("Failed to send email notification to therapist:", emailError);
       }
     },
@@ -169,6 +167,9 @@ export default function TherapistProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
+  
+  // משתנה הסטייט החדש לחשיפת הטלפון
+  const [showPhone, setShowPhone] = useState(false);
 
   const { data: therapist, isLoading } = useQuery({
     queryKey: ["therapist", id],
@@ -178,6 +179,33 @@ export default function TherapistProfile() {
       return data?.[0] ?? null;
     },
   });
+
+  // פונקציית חשיפת הטלפון החדשה ששולחת נתונים לסופאבייס
+  const handlePhoneReveal = async () => {
+    if (showPhone) return; // מניעת לחיצה כפולה
+    setShowPhone(true);
+
+    try {
+      // 1. שמירת הפעולה במסד הנתונים כדי שהאדמין יראה זאת
+      await supabase.from("ContactRequest").insert({
+        therapist_id: therapist.id,
+        contact_type: "phone_reveal", // מוגדר כחשיפת טלפון
+        status: "responded", // סטטוס סגור אוטומטית כי אין צורך לענות לזה
+        patient_name: "חשיפת טלפון (אנונימי)",
+        created_date: new Date().toISOString(),
+      });
+
+      // 2. עדכון מונה הלידים הכללי של המטפל
+      const currentLeads = therapist.lead_count || 0;
+      await supabase
+        .from("Therapist")
+        .update({ lead_count: currentLeads + 1 })
+        .eq("id", therapist.id);
+
+    } catch (error) {
+      console.error("Error logging phone reveal:", error);
+    }
+  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-[50vh]">
@@ -320,6 +348,24 @@ export default function TherapistProfile() {
             )}
 
             <div className="border-b border-border pb-5 mb-5 space-y-3">
+              
+              {/* === תוספת: לחצן חשיפת טלפון === */}
+              {therapist.phone && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Phone className="w-4 h-4 text-primary" />
+                  {showPhone ? (
+                    <a href={`tel:${therapist.phone}`} className="hover:text-primary font-bold text-foreground transition-colors" dir="ltr">
+                      {therapist.phone}
+                    </a>
+                  ) : (
+                    <button onClick={handlePhoneReveal} className="hover:text-primary underline transition-colors">
+                      הצג מספר טלפון
+                    </button>
+                  )}
+                </div>
+              )}
+              {/* ================================= */}
+
               {therapist.formats?.length > 0 && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Video className="w-4 h-4 text-primary" />

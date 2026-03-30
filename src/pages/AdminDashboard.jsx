@@ -19,6 +19,34 @@ export default function AdminDashboard() {
   // ה-state עבור התמונה המוגדלת עבר לרמת האב
   const [selectedImage, setSelectedImage] = useState(null);
 
+  // שאילתה למשיכת מספר המטפלים הממתינים לאישור (קאונטר)
+  const { data: pendingTherapistsCount = 0 } = useQuery({
+    queryKey: ["admin-pending-therapists-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("Therapist")
+        .select("*", { count: 'exact', head: true })
+        .eq("status", "pending");
+      if (error) return 0;
+      return count;
+    },
+    enabled: !!user && (user.role === "admin" || user.email === "itaykorin@gmail.com"),
+  });
+
+  // שאילתה למשיכת מספר המאמרים הממתינים לאישור (קאונטר)
+  const { data: pendingArticlesCount = 0 } = useQuery({
+    queryKey: ["admin-pending-articles-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("Article")
+        .select("*", { count: 'exact', head: true })
+        .eq("status", "pending");
+      if (error) return 0;
+      return count;
+    },
+    enabled: !!user && (user.role === "admin" || user.email === "itaykorin@gmail.com"),
+  });
+
   // יאשר כניסה אם אתה אדמין ב-DB *או* אם זה האימייל הספציפי שלך
   if (user?.role !== "admin" && user?.email !== "itaykorin@gmail.com") {
     return (
@@ -39,9 +67,19 @@ export default function AdminDashboard() {
           <button
             key={i}
             onClick={() => setTab(i)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === i ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${tab === i ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t}
+            {i === 0 && pendingTherapistsCount > 0 && (
+              <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full mr-1">
+                {pendingTherapistsCount}
+              </span>
+            )}
+            {i === 3 && pendingArticlesCount > 0 && (
+              <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full mr-1">
+                {pendingArticlesCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -195,7 +233,8 @@ function TherapistRegistrations({ onImageClick }) {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries(["admin-therapists"]);
+      qc.invalidateQueries({ queryKey: ["admin-therapists"] });
+      qc.invalidateQueries({ queryKey: ["admin-pending-therapists-count"] }); // רענון הקאונטר
       toast.success("מטפל אושר!");
     },
   });
@@ -205,7 +244,11 @@ function TherapistRegistrations({ onImageClick }) {
       const { error } = await supabase.from("Therapist").update({ status: "rejected" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries(["admin-therapists"]); toast.success("מטפל נדחה"); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ["admin-therapists"] }); 
+      qc.invalidateQueries({ queryKey: ["admin-pending-therapists-count"] }); // רענון הקאונטר
+      toast.success("מטפל נדחה"); 
+    },
   });
 
   const profLabels = { psychologist: "פסיכולוג/ית", psychiatrist: "פסיכיאטר/ית", psychotherapist: "פסיכותרפיסט/ית", social_worker: 'עו"ס קליני', counselor: "יועץ/ת" };
@@ -296,7 +339,11 @@ function PendingArticles() {
       const { error } = await supabase.from("Article").update({ status: "published" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries(["admin-articles"]); toast.success("מאמר פורסם!"); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ["admin-articles"] }); 
+      qc.invalidateQueries({ queryKey: ["admin-pending-articles-count"] }); // רענון הקאונטר
+      toast.success("מאמר פורסם!"); 
+    },
   });
   
   const rejectMutation = useMutation({
@@ -304,7 +351,11 @@ function PendingArticles() {
       const { error } = await supabase.from("Article").update({ status: "rejected" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries(["admin-articles"]); toast.success("מאמר נדחה"); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ["admin-articles"] }); 
+      qc.invalidateQueries({ queryKey: ["admin-pending-articles-count"] }); // רענון הקאונטר
+      toast.success("מאמר נדחה"); 
+    },
   });
 
   const categoryLabels = { anxiety: "חרדה", depression: "דיכאון", relationships: "זוגיות", parenting: "הורות", trauma: "טראומה", mindfulness: "מיינדפולנס", general: "כללי" };
