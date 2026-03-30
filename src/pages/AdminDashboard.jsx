@@ -146,6 +146,9 @@ function ContactRequests() {
 
 function TherapistRegistrations() {
   const qc = useQueryClient();
+  // הוספת ה-State לשמירת התמונה שנבחרה להגדלה
+  const [selectedImage, setSelectedImage] = useState(null);
+
   const { data: therapists = [], isLoading } = useQuery({
     queryKey: ["admin-therapists"],
     queryFn: async () => {
@@ -193,15 +196,30 @@ function TherapistRegistrations() {
   if (safeTherapists.length === 0) return <EmptyState text="אין הרשמות ממתינות" />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
       {safeTherapists.map(t => (
         <div key={t.id} className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
+              
+              {/* אזור השם + הוספת התמונה הלחיצה */}
+              <div className="flex items-center gap-2 mb-2">
+                {t.photo_url ? (
+                  <img 
+                    src={t.photo_url} 
+                    alt={t.full_name} 
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all" 
+                    onClick={(e) => { e.stopPropagation(); setSelectedImage(t.photo_url); }}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {t.full_name?.charAt(0)}
+                  </div>
+                )}
                 <span className="font-semibold">{t.full_name}</span>
                 <Badge variant="secondary" className="text-xs">{profLabels[t.profession]}</Badge>
               </div>
+
               <p className="text-xs text-muted-foreground">רישיון: {t.license_number}</p>
               {t.city && <p className="text-xs text-muted-foreground">עיר: {t.city}</p>}
               {t.email && (
@@ -216,7 +234,7 @@ function TherapistRegistrations() {
               )}
               {t.about && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t.about}</p>}
               {t.license_document_url && (
-                <a href={t.license_document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                <a href={t.license_document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
                   <ExternalLink className="w-3 h-3" /> מסמך רישיון
                 </a>
               )}
@@ -232,6 +250,27 @@ function TherapistRegistrations() {
           </div>
         </div>
       ))}
+
+      {/* מודל הגדלת תמונה (Pop-up) */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 md:top-8 md:right-8 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-colors z-50"
+            onClick={() => setSelectedImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img 
+            src={selectedImage} 
+            alt="תמונת מטפל מוגדלת" 
+            className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain relative z-40"
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch"; // הייבוא החדש שהוספנו
 import { BadgeCheck, CheckCircle, Upload, Loader2, FileText, Camera } from "lucide-react";
 import { toast } from "sonner";
 import GroupedCheckboxSelect from "@/components/therapist/GroupedCheckboxSelect";
@@ -42,6 +43,10 @@ export default function RegisterTherapist() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [licenseDocUrl, setLicenseDocUrl] = useState("");
   const [form, setForm] = useState({ full_name: "", profession: "", license_number: "", about: "", city: "", phone: "", email: "", price_per_session: "", years_experience: "" });
+  
+  // הוספנו סטייט חדש לזמינות המיידית
+  const [immediateAvailability, setImmediateAvailability] = useState(false); 
+  
   const [formats, setFormats] = useState([]);
   const [hmos, setHmos] = useState([]);
   const [treatments, setTreatments] = useState([]);
@@ -86,24 +91,20 @@ export default function RegisterTherapist() {
     { value: "amharic", label: t.langAmharic || "אמהרית" },
   ];
 
-const handlePhotoUpload = async (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
     
     try {
-      // 1. הגדרות הכיווץ שלנו
       const options = {
-        maxSizeMB: 0.1, // מקסימום 100KB לתמונה
+        maxSizeMB: 0.1,
         maxWidthOrHeight: 800,
         useWebWorker: true,
-        fileType: 'image/webp' // הופך אוטומטית לפורמט שגוגל אוהב
+        fileType: 'image/webp'
       };
 
-      // 2. מכווצים את התמונה!
       const compressedFile = await imageCompression(file, options);
-      
-      // 3. שולחים ל-Supabase את התמונה המכווצת (compressedFile) במקום המקורית
       const fileUrl = await uploadTherapistFile(compressedFile, "photos");
       
       setPhotoUrl(fileUrl);
@@ -126,7 +127,7 @@ const handlePhotoUpload = async (e) => {
     toast.success(t.registerLicenseUploaded || "מסמך הרישיון הועלה בהצלחה");
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.full_name || !form.profession || !form.license_number) {
       toast.error(t.registerRequiredFields || "יש למלא שדות חובה");
@@ -138,6 +139,7 @@ const handleSubmit = async (e) => {
       ...sanitizeFormData(form),
       price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
       years_experience: form.years_experience ? Number(form.years_experience) : undefined,
+      immediate_availability: immediateAvailability, // השדה נשלח למסד הנתונים!
       formats,
       hmo_affiliation: hmos,
       treatment_types: treatments,
@@ -149,35 +151,32 @@ const handleSubmit = async (e) => {
     };
 
     try {
-      // 1. קודם כל שומרים את המטפל במסד הנתונים
       const { error } = await supabase.from("Therapist").insert(therapistData);
       if (error) throw error;
 
-      // 2. מיד לאחר השמירה המוצלחת - שולחים את המייל אליך!
-      // מחלצים את השם היפה של המקצוע (למשל "פסיכולוג/ית" במקום "psychologist")
       const professionLabel = professions.find(p => p.value === form.profession)?.label || form.profession;
       
-          try {
-      const response = await fetch('/api/notify-admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.full_name,
-          email: form.email,
-          phone: form.phone,
-          profession: professionLabel
-        }),
-      });
+      try {
+        const response = await fetch('/api/notify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.full_name,
+            email: form.email,
+            phone: form.phone,
+            profession: professionLabel
+          }),
+        });
 
-      const result = await response.json(); // בוא נראה מה ה-API ענה
-      if (!response.ok) {
-        console.error("שגיאה מהשרת של Resend:", result.error);
-      } else {
-        console.log("המייל נשלח! מזהה הודעה:", result.id);
+        const result = await response.json();
+        if (!response.ok) {
+          console.error("שגיאה מהשרת של Resend:", result.error);
+        } else {
+          console.log("המייל נשלח! מזהה הודעה:", result.id);
+        }
+      } catch (emailError) {
+        console.error("בעיית רשת או כתובת לא נמצאה:", emailError);
       }
-    } catch (emailError) {
-      console.error("בעיית רשת או כתובת לא נמצאה:", emailError);
-    }
 
       setLoading(false);
       setSubmitted(true);
@@ -272,6 +271,18 @@ const handleSubmit = async (e) => {
             <Label className="text-xs">{t.registerEmail || "אימייל"}</Label>
             <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" />
           </div>
+        </div>
+
+        {/* מתג הזמינות המיידית הוסף כאן - בולט וברור */}
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-4">
+          <div className="space-y-0.5">
+            <Label className="text-sm font-bold text-primary">{t.registerImmediateAvailabilityTitle || "זמינות לקבלת מטופלים"}</Label>
+            <p className="text-xs text-muted-foreground">{t.registerImmediateAvailabilityDesc || "האם יש לך פניות לקבל מטופלים חדשים באופן מיידי?"}</p>
+          </div>
+          <Switch 
+            checked={immediateAvailability} 
+            onCheckedChange={setImmediateAvailability} 
+          />
         </div>
 
         {checkboxGroup(t.registerFormat || "פורמט טיפול", formatOptions, formats, setFormats)}

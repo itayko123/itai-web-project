@@ -23,6 +23,7 @@ export default function TherapistManagement() {
   const [editData, setEditData] = useState({});
   const [expandedId, setExpandedId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const { data: therapists = [], isLoading } = useQuery({
     queryKey: ["admin-all-therapists"],
@@ -102,7 +103,12 @@ export default function TherapistManagement() {
             <div className="grid grid-cols-12 gap-2 px-4 py-3 items-center">
               <div className="col-span-3 flex items-center gap-2 min-w-0">
                 {t.photo_url
-                  ? <img src={t.photo_url} alt={t.full_name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                  ? <img 
+                      src={t.photo_url} 
+                      alt={t.full_name} 
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all" 
+                      onClick={(e) => { e.stopPropagation(); setSelectedImage(t.photo_url); }}
+                    />
                   : <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">{t.full_name?.charAt(0)}</div>
                 }
                 <div className="min-w-0">
@@ -225,6 +231,26 @@ function EditForm({ data, setData, onSave, onCancel, isSaving }) {
         </Button>
         <Button size="sm" variant="outline" onClick={onCancel} className="gap-1"><X className="w-3.5 h-3.5" /> ביטול</Button>
       </div>
+      {/* מודל הגדלת תמונה */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 md:top-8 md:right-8 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-colors"
+            onClick={() => setSelectedImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img 
+            src={selectedImage} 
+            alt="תמונת מטפל מוגדלת" 
+            className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>
+      )}
     </div>
   );
 }

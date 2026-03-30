@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
-import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send } from "lucide-react";
+import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send ,X} from "lucide-react";
 import { buildLabelMap, SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { toast } from "sonner";
 import { sanitizeFormData } from "@/utils/sanitize";
@@ -168,6 +168,7 @@ const mutation = useMutation({
 export default function TherapistProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const { data: therapist, isLoading } = useQuery({
     queryKey: ["therapist", id],
@@ -205,7 +206,12 @@ export default function TherapistProfile() {
             <div className="flex gap-6 flex-wrap">
               <div className="w-32 h-32 rounded-2xl overflow-hidden bg-accent flex-shrink-0 shadow">
                 {therapist.photo_url ? (
-                  <img src={therapist.photo_url} alt={therapist.full_name} className="w-full h-full object-cover" />
+                  <img 
+                    src={therapist.photo_url} 
+                    alt={therapist.full_name} 
+                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300" 
+                    onClick={() => setSelectedImage(therapist.photo_url)}
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-primary/40">
                     {therapist.full_name?.charAt(0)}
@@ -351,6 +357,26 @@ export default function TherapistProfile() {
           </div>
         </div>
       </div>
+      {/* מודל הגדלת תמונה */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 md:top-8 md:right-8 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full p-2 transition-colors"
+            onClick={() => setSelectedImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img 
+            src={selectedImage} 
+            alt="תמונת מטפל מוגדלת" 
+            className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>
+      )}
     </div>
   );
 }
