@@ -157,24 +157,27 @@ const handleSubmit = async (e) => {
       // מחלצים את השם היפה של המקצוע (למשל "פסיכולוג/ית" במקום "psychologist")
       const professionLabel = professions.find(p => p.value === form.profession)?.label || form.profession;
       
-      try {
-        await fetch('/api/notify-admin', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: form.full_name,
-            email: form.email,
-            phone: form.phone,
-            profession: professionLabel
-          }),
-        });
-      } catch (emailError) {
-        console.error("שליחת האימייל נכשלה, אבל המטפל נשמר במסד הנתונים:", emailError);
-        // אנחנו תופסים פה את השגיאה כדי שאם המייל נכשל מאיזושהי סיבה, 
-        // המטפל עדיין יראה הודעת הצלחה (כי הוא באמת נשמר ב-Supabase).
+          try {
+      const response = await fetch('/api/notify-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.full_name,
+          email: form.email,
+          phone: form.phone,
+          profession: professionLabel
+        }),
+      });
+
+      const result = await response.json(); // בוא נראה מה ה-API ענה
+      if (!response.ok) {
+        console.error("שגיאה מהשרת של Resend:", result.error);
+      } else {
+        console.log("המייל נשלח! מזהה הודעה:", result.id);
       }
+    } catch (emailError) {
+      console.error("בעיית רשת או כתובת לא נמצאה:", emailError);
+    }
 
       setLoading(false);
       setSubmitted(true);
