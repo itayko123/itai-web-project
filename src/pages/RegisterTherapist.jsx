@@ -312,16 +312,20 @@ export default function RegisterTherapist() {
           </label>
         </div>
 
-        {/* מתג הזמינות המיידית - הועבר לסוף הטופס, קרוב לכפתור השליחה */}
-        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-4 mt-8">
-          <div className="space-y-0.5 pl-4">
-            <Label className="text-sm font-bold text-primary">{t.registerImmediateAvailabilityTitle || "זמינות לקבלת מטופלים"}</Label>
-            <p className="text-xs text-muted-foreground">{t.registerImmediateAvailabilityDesc || "האם יש לך פניות לקבל מטופלים חדשים באופן מיידי?"}</p>
+        {/* מתג הזמינות המיידית - מעוצב ומתוקן ל-RTL */}
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-5 mt-8">
+          <div className="space-y-1 pl-4">
+            <Label className="text-base font-bold text-primary block">{t.registerImmediateAvailabilityTitle || "זמינות לקבלת מטופלים"}</Label>
+            <p className="text-sm text-muted-foreground">{t.registerImmediateAvailabilityDesc || "האם יש לך פניות לקבל מטופלים חדשים באופן מיידי?"}</p>
           </div>
-          <Switch 
-            checked={immediateAvailability} 
-            onCheckedChange={setImmediateAvailability} 
-          />
+          
+          {/* הוספנו dir="ltr" כדי לתקן את הבאג של העיגול שבורח בעברית */}
+          <div dir="ltr" className="flex-shrink-0 scale-110">
+            <Switch 
+              checked={immediateAvailability} 
+              onCheckedChange={setImmediateAvailability} 
+            />
+          </div>
         </div>
 
         {/* כפתור שליחה */}
