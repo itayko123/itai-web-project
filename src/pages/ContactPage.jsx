@@ -5,9 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Mail, Phone, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Mail, Phone, MessageCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { toast } from "sonner"; // הוספתי את Sonner להודעות שגיאה יפות
+import { toast } from "sonner";
+
+// פונקציית העזר ל-reCAPTCHA
+async function getRecaptchaToken(action) {
+  return new Promise((resolve) => {
+    if (!window.grecaptcha) { resolve(null); return; }
+    window.grecaptcha.ready(() => {
+      window.grecaptcha
+        .execute("6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI", { action })
+        .then(resolve)
+        .catch(() => resolve(null));
+    });
+  });
+}
 
 export default function ContactPage() {
   const { t } = useLanguage();
@@ -20,6 +33,17 @@ export default function ContactPage() {
     setLoading(true);
 
     try {
+      // 0. אימות אנושי (reCAPTCHA) לפני הכל
+      const token = await getRecaptchaToken("contact_admin");
+      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן).");
+      
+      const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
+      
+      if (captchaError || captchaRes?.success === false) {
+           console.error("Recaptcha failed:", captchaRes);
+           throw new Error("אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לשלוח הודעה.");
+      }
+
       // 1. שמירה בטבלת ContactRequest ב-Supabase
       const { error } = await supabase.from("ContactRequest").insert({
         patient_name: form.name,
@@ -67,7 +91,7 @@ export default function ContactPage() {
       
     } catch (err) {
       console.error("Error submitting general contact form:", err);
-      toast.error("אירעה שגיאה בשליחת הפנייה. נסה שוב מאוחר יותר.");
+      toast.error(err.message || "אירעה שגיאה בשליחת הפנייה. נסה שוב מאוחר יותר.");
     } finally {
       setLoading(false);
     }
@@ -150,7 +174,14 @@ export default function ContactPage() {
                 <Label className="mb-1.5 block">{t.contactMessageLabel}</Label>
                 <Textarea value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} placeholder={t.contactMessagePlaceholder} rows={5} required />
               </div>
-              <Button type="submit" disabled={loading} className="w-full">{loading ? "שולח..." : t.contactSendBtn}</Button>
+              
+              <div className="text-[11px] text-muted-foreground text-center pt-2">
+                שליחת הפנייה מהווה אישור לאימות אנושי (reCAPTCHA)
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> שולח...</> : t.contactSendBtn}
+              </Button>
             </form>
           )}
         </div>

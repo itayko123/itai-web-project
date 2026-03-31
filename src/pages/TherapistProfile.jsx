@@ -224,8 +224,8 @@ function ContactForm({ therapist }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="font-bold text-base flex items-center gap-2">
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <h3 className="font-bold text-base flex items-center gap-2 mb-1">
         <Send className="w-4 h-4 text-primary" />
         פנה/י אל המטפל
       </h3>
@@ -260,23 +260,23 @@ function ContactForm({ therapist }) {
 
       <div className="space-y-1">
         <Label className="text-xs">הודעה (אופציונלי)</Label>
-        <Textarea value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder="ספר/י בקצרה מה מביא/ה אותך לפנות..." rows={3} />
+        <Textarea value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder="ספר/י בקצרה מה מביא/ה אותך לפנות..." rows={2} />
       </div>
 
-      <div className="bg-muted/50 rounded-xl p-3 flex items-start gap-3">
+      <div className="bg-muted/50 rounded-lg p-2.5 flex items-start gap-2.5">
         <Checkbox id="tos" checked={form.tos_accepted} onCheckedChange={v => setForm({...form, tos_accepted: v})} className="mt-0.5" />
         <label htmlFor="tos" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
           קראתי ואני מסכים/ה ל
           <Link to="/terms" className="text-primary underline mx-1">תנאי השימוש</Link>
-          ומבין/ה כי הפלטפורמה אינה אחראית לתהליך הטיפול עצמו.
+          ומבין/ה כי הפלטפורמה אינה אחראית לתהליך.
         </label>
       </div>
 
-      <div className="text-xs text-muted-foreground text-center pt-1 pb-1">
+      <div className="text-[11px] text-muted-foreground text-center">
         שליחת הפנייה מהווה אישור לאימות אנושי (reCAPTCHA)
       </div>
 
-      <Button type="submit" disabled={mutation.isPending} className="w-full font-semibold">
+      <Button type="submit" disabled={mutation.isPending} className="w-full font-semibold h-9">
         {mutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin ml-2" />שולח...</> : "שלח פנייה"}
       </Button>
     </form>
@@ -369,7 +369,7 @@ export default function TherapistProfile() {
               </div>
             </div>
 
-            {/* ====== הבלוק החדש והבולט של פרטי השירות (מקום של כבוד) ====== */}
+            {/* פרטי השירות (מקום של כבוד) */}
             {(therapist.formats?.length > 0 || therapist.hmo_affiliation?.length > 0 || therapist.languages?.length > 0) && (
               <div className="bg-card border border-border rounded-2xl p-7">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -469,22 +469,22 @@ export default function TherapistProfile() {
             )}
           </div>
 
-          {/* Sidebar - צד שמאל */}
+          {/* Sidebar - צד שמאל המכווץ */}
           <div className="space-y-4">
-            <div className="bg-card border border-border rounded-2xl p-6 sticky top-20">
+            <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm">
               {therapist.price_per_session && (
-                <div className="mb-5 text-center pb-5 border-b border-border">
-                  <div className="text-4xl font-black text-foreground">₪{therapist.price_per_session}</div>
-                  <div className="text-sm text-muted-foreground">לפגישה</div>
+                <div className="mb-4 text-center pb-4 border-b border-border">
+                  <div className="text-3xl font-black text-foreground">₪{therapist.price_per_session}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">לפגישה</div>
                 </div>
               )}
 
               {/* כפתור טלפון */}
               {therapist.phone && therapist.immediate_availability && (
-                <div className="mb-6 relative">
+                <div className="mb-4 relative">
                   <button
                     onClick={() => setShowPhoneModal(true)}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl"
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl"
                     style={{ animation: "phonePulse 2s infinite" }}
                   >
                     <Phone className="w-5 h-5" />
@@ -502,8 +502,8 @@ export default function TherapistProfile() {
 
               {/* כפתור מעבר לאתר אינטרנט (אם יש) */}
               {therapist.website && (
-                <div className="mb-5">
-                  <a href={therapist.website} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2.5 rounded-xl transition-colors text-sm">
+                <div className="mb-4">
+                  <a href={therapist.website} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2 rounded-xl transition-colors text-sm">
                     <Globe className="w-4 h-4 text-primary" />
                     מעבר לאתר המטפל/ת
                   </a>
@@ -511,12 +511,10 @@ export default function TherapistProfile() {
               )}
 
               {/* טופס יצירת קשר */}
-              <div className="pt-2">
-                <ContactForm therapist={therapist} />
-              </div>
+              <ContactForm therapist={therapist} />
 
               {therapist.license_number && (
-                <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground text-center">
+                <div className="mt-3 pt-3 border-t border-border text-[11px] text-muted-foreground text-center">
                   מספר רישיון: {therapist.license_number}
                 </div>
               )}
