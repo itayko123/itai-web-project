@@ -43,19 +43,16 @@ function PhoneRevealModal({ therapist, open, onClose }) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      // 1. אימות reCAPTCHA
       const token = await getRecaptchaToken("phone_reveal");
       if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן).");
       
       const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
       
-      // הבדיקה הקריטית: האם השרת אמר שזה נכשל?
       if (captchaError || captchaRes?.success === false) {
-          console.error("Recaptcha failed:", captchaRes); // יעזור לנו לדבג
+          console.error("Recaptcha failed:", captchaRes); 
           throw new Error("אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לחשוף מספר.");
       }
 
-      // 2. שמירת הליד (חשיפת טלפון) בסופאבייס - מתעד כפנייה מסוג חשיפת טלפון
       const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         patient_name: sanitizeFormData(form).patient_name,
@@ -66,7 +63,6 @@ function PhoneRevealModal({ therapist, open, onClose }) {
       });
       if (contactError) throw contactError;
 
-      // 3. עדכון מונה הלידים הכללי של המטפל
       const currentLeads = therapist.lead_count || 0;
       const { error: therapistError } = await supabase
         .from("Therapist")
@@ -276,7 +272,6 @@ function ContactForm({ therapist }) {
         </label>
       </div>
 
-      {/* השורה שהוספנו כדי ליידע על ה-reCAPTCHA */}
       <div className="text-xs text-muted-foreground text-center pt-1 pb-1">
         שליחת הפנייה מהווה אישור לאימות אנושי (reCAPTCHA)
       </div>
@@ -323,7 +318,7 @@ export default function TherapistProfile() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content */}
+          {/* Main content - צד ימין (בעברית) */}
           <div className="lg:col-span-2 space-y-5">
             {/* Header card */}
             <div className="bg-card border border-border rounded-2xl p-7">
@@ -370,15 +365,61 @@ export default function TherapistProfile() {
                       <span className="text-sm text-muted-foreground">{therapist.years_experience} שנות ניסיון</span>
                     )}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== הבלוק החדש והבולט של פרטי השירות (מקום של כבוד) ====== */}
+            {(therapist.formats?.length > 0 || therapist.hmo_affiliation?.length > 0 || therapist.languages?.length > 0) && (
+              <div className="bg-card border border-border rounded-2xl p-7">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* אופני טיפול */}
+                  {therapist.formats?.length > 0 && (
+                    <div className="flex items-start gap-4">
+                      <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
+                        <Video className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-0.5">אופני טיפול</h4>
+                        <p className="text-base font-bold text-foreground">
+                          {therapist.formats.map(f => formatLabels[f]).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* קבלת קהל (קופות חולים/פרטי) */}
+                  {therapist.hmo_affiliation?.length > 0 && (
+                    <div className="flex items-start gap-4">
+                      <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-0.5">קבלת קהל</h4>
+                        <p className="text-base font-bold text-foreground">
+                          {therapist.hmo_affiliation.map(h => hmoLabels[h]).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* שפות */}
                   {therapist.languages?.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <Languages className="w-4 h-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">{therapist.languages.map(l => langLabels[l] || l).join(", ")}</span>
+                    <div className="flex items-start gap-4">
+                      <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
+                        <Languages className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-0.5">שפות טיפול</h4>
+                        <p className="text-base font-bold text-foreground">
+                          {therapist.languages.map(l => langLabels[l] || l).join(", ")}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* About section */}
             {therapist.about && (
@@ -428,7 +469,7 @@ export default function TherapistProfile() {
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - צד שמאל */}
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-2xl p-6 sticky top-20">
               {therapist.price_per_session && (
@@ -438,7 +479,7 @@ export default function TherapistProfile() {
                 </div>
               )}
 
-              {/* === כפתור הפעימות הבולט - מופיע רק אם המטפל זמין! === */}
+              {/* כפתור טלפון */}
               {therapist.phone && therapist.immediate_availability && (
                 <div className="mb-6 relative">
                   <button
@@ -459,35 +500,20 @@ export default function TherapistProfile() {
                 </div>
               )}
 
-              <div className="border-b border-border pb-5 mb-5 space-y-3">
-                {therapist.formats?.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Video className="w-4 h-4 text-primary" />
-                    {therapist.formats.map(f => formatLabels[f]).join(", ")}
-                  </div>
-                )}
-                {therapist.hmo_affiliation?.length > 0 && (
-                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <Users className="w-4 h-4 text-primary mt-0.5" />
-                    <span>{therapist.hmo_affiliation.map(h => hmoLabels[h]).join(", ")}</span>
-                  </div>
-                )}
-                {therapist.languages?.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Languages className="w-4 h-4 text-primary" />
-                    {therapist.languages.map(l => langLabels[l] || l).join(", ")}
-                  </div>
-                )}
-                {therapist.website && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {/* כפתור מעבר לאתר אינטרנט (אם יש) */}
+              {therapist.website && (
+                <div className="mb-5">
+                  <a href={therapist.website} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2.5 rounded-xl transition-colors text-sm">
                     <Globe className="w-4 h-4 text-primary" />
-                    <a href={therapist.website} target="_blank" rel="noreferrer" className="hover:text-foreground truncate">אתר אינטרנט</a>
-                  </div>
-                )}
-              </div>
+                    מעבר לאתר המטפל/ת
+                  </a>
+                </div>
+              )}
 
-              {/* Inline Contact Form - מכיל בתוכו את ההודעה "המטפל אינו זמין כעת" */}
-              <ContactForm therapist={therapist} />
+              {/* טופס יצירת קשר */}
+              <div className="pt-2">
+                <ContactForm therapist={therapist} />
+              </div>
 
               {therapist.license_number && (
                 <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground text-center">
@@ -499,7 +525,6 @@ export default function TherapistProfile() {
         </div>
       </div>
 
-      {/* קריאה למודל חשיפת הטלפון */}
       <PhoneRevealModal
         therapist={therapist}
         open={showPhoneModal}
