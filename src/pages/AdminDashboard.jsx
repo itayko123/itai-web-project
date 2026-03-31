@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Mail, Phone, Loader2, ShieldAlert, BookOpen, MessageSquare, ExternalLink } from "lucide-react";
+import { Check, X, Mail, Phone, Loader2, ShieldAlert, BookOpen, MessageSquare, ExternalLink, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import TherapistManagement from "@/components/admin/TherapistManagement";
 
@@ -84,7 +84,6 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* העברנו את הפונקציה לפתיחת תמונה כ-prop */}
       {tab === 0 && <TherapistRegistrations onImageClick={setSelectedImage} />}
       {tab === 1 && <TherapistManagement onImageClick={setSelectedImage} />}
       {tab === 2 && <ContactRequests />}
@@ -126,7 +125,7 @@ function ContactRequests() {
         .from("ContactRequest")
         .select("*")
         .order("created_date", { ascending: false })
-        .limit(200);
+        .limit(500); // הגדלנו לימיט כדי לתפוס נתונים של חודשים קודמים
       if (error) throw error;
       return data ?? [];
     },
@@ -137,10 +136,9 @@ function ContactRequests() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("Therapist")
-        .select("*")
+        .select("id, full_name, status")
         .eq("status", "approved")
-        .order("created_date", { ascending: false })
-        .limit(200);
+        .order("created_date", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -153,15 +151,24 @@ function ContactRequests() {
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const prevMonth = (() => { const d = new Date(now.getFullYear(), now.getMonth() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; })();
 
-  const leadCounts = safeRequests.reduce((acc, r) => {
-    acc[r.therapist_id] = (acc[r.therapist_id] || 0) + 1;
-    return acc;
-  }, {});
-  
-  const monthlyLeads = safeRequests.reduce((acc, r) => {
+  // אובייקט שיכיל את כל הסטטיסטיקות בצורה מסודרת
+  const stats = safeRequests.reduce((acc, r) => {
+    const tId = r.therapist_id;
     const month = r.lead_month || r.created_date?.slice(0, 7) || "?";
-    if (!acc[r.therapist_id]) acc[r.therapist_id] = {};
-    acc[r.therapist_id][month] = (acc[r.therapist_id][month] || 0) + 1;
+    const type = r.contact_type === "phone_reveal" ? "phone" : "message";
+
+    if (!acc[tId]) {
+      acc[tId] = { total: 0, phone: 0, message: 0, months: {} };
+    }
+    if (!acc[tId].months[month]) {
+      acc[tId].months[month] = { total: 0, phone: 0, message: 0 };
+    }
+
+    acc[tId].total += 1;
+    acc[tId][type] += 1;
+    acc[tId].months[month].total += 1;
+    acc[tId].months[month][type] += 1;
+
     return acc;
   }, {});
 
@@ -174,25 +181,54 @@ function ContactRequests() {
       </div>
 
       {safeTherapists.length > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-5">
-          <h2 className="font-bold text-sm mb-4 flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-primary" />
-            סיכום פניות לפי מטפל (חודשי)
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+          <h2 className="font-bold text-base mb-5 flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-primary" />
+            סיכום פניות לפי מטפל
           </h2>
-          <div className="space-y-2">
-            {[...safeTherapists].sort((a, b) => (leadCounts[b.id] || 0) - (leadCounts[a.id] || 0)).map(t => {
-              const thisMonth = monthlyLeads[t.id]?.[currentMonth] || 0;
-              const lastMonth = monthlyLeads[t.id]?.[prevMonth] || 0;
-              return (
-                <div key={t.id} className="bg-muted/30 rounded-xl p-3 flex items-center justify-between gap-4 flex-wrap">
-                  <span className="text-sm font-medium">{t.full_name}</span>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-muted-foreground">חודש נוכחי: <span className="font-bold text-primary">{thisMonth}</span></span>
-                    <span className="text-muted-foreground">חודש קודם: <span className="font-bold">{lastMonth}</span></span>
-                    <Badge className="bg-primary/10 text-primary text-xs font-bold">סה״כ: {leadCounts[t.id] || 0}</Badge>
+          <div className="space-y-3">
+            {[...safeTherapists]
+              .sort((a, b) => (stats[b.id]?.total || 0) - (stats[a.id]?.total || 0))
+              .map(t => {
+                const tStats = stats[t.id] || { total: 0, phone: 0, message: 0, months: {} };
+                const thisMonth = tStats.months[currentMonth] || { total: 0, phone: 0, message: 0 };
+                const lastMonth = tStats.months[prevMonth] || { total: 0, phone: 0, message: 0 };
+                
+                return (
+                  <div key={t.id} className="bg-muted/30 border border-border/50 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="font-semibold text-base">{t.full_name}</div>
+                    
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                      {/* חודש נוכחי */}
+                      <div className="flex flex-col">
+                        <span className="text-muted-foreground text-xs mb-1">חודש נוכחי</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-primary">{thisMonth.total} סה"כ</span>
+                          <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded"><Smartphone className="w-3 h-3"/> {thisMonth.phone}</span>
+                          <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded"><Mail className="w-3 h-3"/> {thisMonth.message}</span>
+                        </div>
+                      </div>
+
+                      {/* חודש קודם */}
+                      <div className="flex flex-col border-r border-border/60 pr-4">
+                        <span className="text-muted-foreground text-xs mb-1">חודש קודם</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold">{lastMonth.total} סה"כ</span>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground"><Smartphone className="w-3 h-3"/> {lastMonth.phone}</span>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground"><Mail className="w-3 h-3"/> {lastMonth.message}</span>
+                        </div>
+                      </div>
+
+                      {/* סך הכל כל הזמנים */}
+                      <div className="flex flex-col border-r border-border/60 pr-4">
+                        <span className="text-muted-foreground text-xs mb-1">כל הזמנים</span>
+                        <Badge variant="outline" className="border-primary/30 text-primary gap-1">
+                          {tStats.total} פניות
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
+                );
             })}
           </div>
         </div>
@@ -203,7 +239,6 @@ function ContactRequests() {
   );
 }
 
-// קבלנו את הפונקציה onImageClick כ-prop
 function TherapistRegistrations({ onImageClick }) {
   const qc = useQueryClient();
 

@@ -46,16 +46,15 @@ function PhoneRevealModal({ therapist, open, onClose }) {
       // 1. אימות reCAPTCHA
       const token = await getRecaptchaToken("phone_reveal");
       if (token) {
-        // הערה: יש לוודא שיש לך Edge Function בסופאבייס בשם verifyRecaptcha
         const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
         if (captchaError || !captchaRes?.success) throw new Error("אימות אנושי נכשל. נסה שוב.");
       }
 
-      // 2. שמירת הליד (חשיפת טלפון) בסופאבייס
+      // 2. שמירת הליד (חשיפת טלפון) בסופאבייס - מתעד כפנייה מסוג חשיפת טלפון
       const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         patient_name: sanitizeFormData(form).patient_name,
-        patient_phone: sanitizeFormData(form).contact_info, // שומרים את מה שהוזן (טלפון או אימייל) בתיבה הרלוונטית
+        patient_phone: sanitizeFormData(form).contact_info,
         contact_type: "phone_reveal",
         status: "responded",
         created_date: new Date().toISOString(),
