@@ -276,6 +276,11 @@ function ContactForm({ therapist }) {
         </label>
       </div>
 
+      {/* השורה שהוספנו כדי ליידע על ה-reCAPTCHA */}
+      <div className="text-xs text-muted-foreground text-center pt-1 pb-1">
+        שליחת הפנייה מהווה אישור לאימות אנושי (reCAPTCHA)
+      </div>
+
       <Button type="submit" disabled={mutation.isPending} className="w-full font-semibold">
         {mutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin ml-2" />שולח...</> : "שלח פנייה"}
       </Button>
