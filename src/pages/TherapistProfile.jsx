@@ -45,9 +45,14 @@ function PhoneRevealModal({ therapist, open, onClose }) {
     mutationFn: async () => {
       // 1. אימות reCAPTCHA
       const token = await getRecaptchaToken("phone_reveal");
-      if (token) {
-        const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
-        if (captchaError || !captchaRes?.success) throw new Error("אימות אנושי נכשל. נסה שוב.");
+      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן).");
+      
+      const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
+      
+      // הבדיקה הקריטית: האם השרת אמר שזה נכשל?
+      if (captchaError || captchaRes?.success === false) {
+          console.error("Recaptcha failed:", captchaRes); // יעזור לנו לדבג
+          throw new Error("אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לחשוף מספר.");
       }
 
       // 2. שמירת הליד (חשיפת טלפון) בסופאבייס - מתעד כפנייה מסוג חשיפת טלפון
@@ -171,9 +176,13 @@ function ContactForm({ therapist }) {
   const mutation = useMutation({
     mutationFn: async () => {
       const token = await getRecaptchaToken("contact_form");
-      if (token) {
-        const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
-        if (captchaError || !captchaRes?.success) throw new Error("אימות אנושי נכשל. נסה שוב.");
+      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן).");
+      
+      const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
+      
+      if (captchaError || captchaRes?.success === false) {
+           console.error("Recaptcha failed:", captchaRes);
+           throw new Error("אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לשלוח הודעה.");
       }
 
       const { error: contactError } = await supabase.from("ContactRequest").insert({
