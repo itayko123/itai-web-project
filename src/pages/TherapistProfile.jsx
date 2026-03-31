@@ -433,8 +433,8 @@ export default function TherapistProfile() {
                 </div>
               )}
 
-              {/* === כפתור הפעימות הבולט === */}
-              {therapist.phone && (
+              {/* === כפתור הפעימות הבולט - מופיע רק אם המטפל זמין! === */}
+              {therapist.phone && therapist.immediate_availability && (
                 <div className="mb-6 relative">
                   <button
                     onClick={() => setShowPhoneModal(true)}
@@ -481,7 +481,7 @@ export default function TherapistProfile() {
                 )}
               </div>
 
-              {/* Inline Contact Form */}
+              {/* Inline Contact Form - מכיל בתוכו את ההודעה "המטפל אינו זמין כעת" */}
               <ContactForm therapist={therapist} />
 
               {therapist.license_number && (
