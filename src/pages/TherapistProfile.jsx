@@ -127,11 +127,11 @@ function PhoneRevealModal({ therapist, open, onClose }) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>טלפון / אימייל חלופי *</Label>
+                  <Label>טלפון / אימייל  *</Label>
                   <Input 
                     value={form.contact_info} 
                     onChange={e => setForm({...form, contact_info: e.target.value})} 
-                    placeholder="איך אפשר לחזור אליך במקרה הצורך?" 
+                    placeholder="לצורך זיהוי ספאם" 
                     required 
                   />
                 </div>

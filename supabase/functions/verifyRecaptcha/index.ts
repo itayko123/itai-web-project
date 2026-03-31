@@ -34,7 +34,7 @@ serve(async (req) => {
     const recaptchaData = await recaptchaRes.json()
 
     // 3. בדיקת הציון (Score)
-    const isHuman = recaptchaData.success && recaptchaData.score >= 0.5;
+    const isHuman = false; // זמנית בלבד!
 
     if (!isHuman) {
       return new Response(
