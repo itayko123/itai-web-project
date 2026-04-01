@@ -35,7 +35,7 @@ async function getRecaptchaToken(action) {
     window.grecaptcha.ready(() => {
       try {
         window.grecaptcha
-          .execute("6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI", { action })
+          .execute("6LfXwZ4sAAAAAIY_n0rmhrbRCxNzCtEOMqLTfJnT", { action })
           .then((token) => {
             if (!token) console.warn("reCAPTCHA returned an empty token.");
             resolve(token);

@@ -15,7 +15,7 @@ async function getRecaptchaToken(action) {
     if (!window.grecaptcha) { resolve(null); return; }
     window.grecaptcha.ready(() => {
       window.grecaptcha
-        .execute("6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI", { action })
+        .execute("6LfXwZ4sAAAAAIY_n0rmhrbRCxNzCtEOMqLTfJnT", { action })
         .then(resolve)
         .catch(() => resolve(null));
     });
