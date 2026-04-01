@@ -1,185 +1,162 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import TherapistCard from "@/components/therapist/TherapistCard";
-import FilterPanel from "@/components/therapist/FilterPanel";
-import { SlidersHorizontal, Loader2, ChevronRight, ChevronLeft, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Loader2, Clock, ArrowRight, User, BookOpen, ExternalLink, BadgeCheck } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useLanguage } from "@/lib/LanguageContext";
+import { Helmet } from "react-helmet-async";
 
-const defaultFilters = { profession: "all", city: "all", format: "all", hmo: "all", gender: "all", maxPrice: 800, immediate: false, specialization: "all", treatment_method: "all", language: "all" };
-const PAGE_SIZE = 12;
+const categoryLabels = {
+  anxiety: "חרדה", depression: "דיכאון", relationships: "זוגיות",
+  parenting: "הורות", trauma: "טראומה", mindfulness: "מיינדפולנס", general: "כללי"
+};
 
-export default function TherapistSearch() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const [filters, setFilters] = useState({
-    ...defaultFilters,
-    profession: urlParams.get("profession") || "all",
-    city: urlParams.get("city") || "all",
-    specialization: urlParams.get("specialization") || "all",
-    language: urlParams.get("language") || "all",
-    gender: urlParams.get("gender") || "all",
-    hmo: urlParams.get("hmo") || "all",
-    format: urlParams.get("format") || "all",
-    treatment_method: urlParams.get("treatment_method") || "all",
-    immediate: urlParams.get("immediate") === "true",
-  });
+const categoryColors = {
+  anxiety: "bg-blue-100 text-blue-700", depression: "bg-purple-100 text-purple-700",
+  relationships: "bg-pink-100 text-pink-700", parenting: "bg-amber-100 text-amber-700",
+  trauma: "bg-red-100 text-red-700", mindfulness: "bg-emerald-100 text-emerald-700",
+  general: "bg-gray-100 text-gray-700"
+};
 
-  // הנה הסטייט של החיפוש לפי שם שחזר! הוא גם מושך מידע מה-URL אם הגענו מדף הבית
-  const [nameSearch, setNameSearch] = useState(urlParams.get("name") || "");
-  const [page, setPage] = useState(1);
+export default function ArticleDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { t } = useLanguage();
 
-  const { data: therapists = [], isLoading } = useQuery({
-    queryKey: ["therapists"],
+  const { data: article, isLoading } = useQuery({
+    queryKey: ["article", id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("Therapist")
+        .from("Article")
         .select("*")
-        .eq("status", "approved")
-        .order("average_rating", { ascending: false })
-        .limit(200);
+        .eq("id", id)
+        .single();
       if (error) throw error;
-      return data ?? [];
+      return data;
     },
-    staleTime: 5 * 60 * 1000,
   });
 
-  const filtered = useMemo(() => therapists.filter(t => {
-    if (filters.profession !== "all" && t.profession !== filters.profession) return false;
-    if (filters.city !== "all" && t.city !== filters.city) return false;
-    if (filters.format !== "all" && !t.formats?.includes(filters.format)) return false;
-    if (filters.hmo !== "all" && !t.hmo_affiliation?.includes(filters.hmo)) return false;
-    if (filters.gender !== "all" && t.gender !== filters.gender) return false;
-    if (filters.maxPrice < 800 && t.price_per_session && t.price_per_session > filters.maxPrice) return false;
-    if (filters.immediate && !t.immediate_availability) return false;
-    if (filters.specialization !== "all" && !t.specializations?.includes(filters.specialization)) return false;
-    if (filters.treatment_method !== "all" && !t.treatment_types?.includes(filters.treatment_method)) return false;
-    if (filters.language !== "all" && !t.languages?.includes(filters.language)) return false;
-    
-    // הנה הסינון לפי שם שחזר לעבוד!
-    if (nameSearch.trim()) {
-      const q = nameSearch.trim().toLowerCase();
-      if (!(t.full_name || "").toLowerCase().includes(q)) return false;
-    }
-    
-    return true;
-  }), [therapists, filters, nameSearch]); // חשוב: הוספנו את nameSearch לתלויות כאן
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+    </div>
+  );
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  if (!article) return (
+    <div className="text-center py-20">
+      <h2 className="text-xl font-bold mb-4">המאמר לא נמצא</h2>
+      <Button onClick={() => navigate("/articles")}>חזרה לבלוג</Button>
+    </div>
+  );
 
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-    setPage(1);
-  };
+  // --- הכנת נתוני SEO למאמר ---
+  const metaTitle = `${article.title} | מצא לי מטפל`;
+  const metaDescription = article.excerpt || `קראו את המאמר המלא בנושא ${categoryLabels[article.category] || "טיפול"}.`;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold">מצא מטפל</h1>
-          <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">✅ חינמי למטופלים</span>
-        </div>
+    <>
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
         
-        {/* הנה שורת החיפוש שהוספנו חזרה מעל כמות התוצאות */}
-        <div className="relative mt-3 max-w-sm">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={nameSearch}
-            onChange={e => { setNameSearch(e.target.value); setPage(1); }}
-            placeholder="חיפוש לפי שם מטפל..."
-            className="pr-9 h-10 text-sm"
-          />
-        </div>
-        
-        <p className="text-sm text-muted-foreground mt-2">{filtered.length} מטפלים נמצאו</p>
-      </div>
+        {/* תגיות OG ספציפיות למאמרים */}
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDescription} />
+        {article.image_url && <meta property="og:image" content={article.image_url} />}
+      </Helmet>
 
-      <div className="flex gap-6">
-        {/* Desktop filter sidebar */}
-        <aside className="hidden lg:block w-64 flex-shrink-0" aria-label="פילטרים">
-          <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
-        </aside>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8 group"
+        >
+          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          {t.articleBack}
+        </button>
 
-        <div className="flex-1 min-w-0">
-          {/* Mobile filter button */}
-          <div className="lg:hidden mb-4">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2" aria-label="פתח פאנל סינון">
-                  <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
-                  סינון
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-80 overflow-y-auto" dir="rtl">
-                <div className="pt-6 pb-10">
-                  <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
-                </div>
-              </SheetContent>
-            </Sheet>
+        {/* Article Header */}
+        <header className="mb-10 text-center md:text-right">
+          <Badge className={`${categoryColors[article.category] || categoryColors.general} mb-4 text-xs px-3 py-1`}>
+            {categoryLabels[article.category] || article.category}
+          </Badge>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black mb-6 leading-tight">
+            {article.title}
+          </h1>
+
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground">
+            {article.therapist_name && (
+              <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-full">
+                <User className="w-4 h-4 text-primary" />
+                <span className="font-medium text-foreground">{article.therapist_name}</span>
+                {article.therapist_id && (
+                   <Link to={`/therapist/${article.therapist_id}`} className="text-primary hover:underline flex items-center gap-0.5">
+                     <BadgeCheck className="w-3.5 h-3.5" />
+                     {t.viewProfile}
+                   </Link>
+                )}
+              </div>
+            )}
+            {article.read_time_minutes && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4" />
+                <span>{article.read_time_minutes} {t.articlesReadTime}</span>
+              </div>
+            )}
           </div>
+        </header>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" aria-label="טוען מטפלים..." />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <p className="text-lg font-medium mb-2">לא נמצאו מטפלים</p>
-              <p className="text-sm">נסה לשנות את הסינון או החיפוש</p>
-            </div>
-          ) : (
-            <>
-              <section aria-label="רשימת מטפלים">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {paginated.map((t, i) => (
-                    <TherapistCard key={t.id} therapist={t} priority={i < 4} />
-                  ))}
-                </div>
-              </section>
+        {/* Featured Image */}
+        {article.image_url && (
+          <div className="aspect-video rounded-3xl overflow-hidden mb-10 shadow-lg border border-border">
+            <img 
+              src={article.image_url} 
+              alt={article.title} 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <nav className="flex items-center justify-center gap-2 mt-8" aria-label="דפים">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    disabled={page === 1}
-                    aria-label="עמוד קודם"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <Button
-                      key={p}
-                      variant={p === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => { setPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                      aria-label={`עמוד ${p}`}
-                      aria-current={p === page ? "page" : undefined}
-                      className="w-9"
-                    >
-                      {p}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    disabled={page === totalPages}
-                    aria-label="עמוד הבא"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                </nav>
-              )}
-            </>
-          )}
+        {/* Excerpt */}
+        {article.excerpt && (
+          <p className="text-lg text-muted-foreground leading-relaxed border-r-4 border-primary/40 pr-4 mb-8 font-medium">
+            {article.excerpt}
+          </p>
+        )}
+
+        {/* Main content */}
+        <div className="prose prose-slate max-w-none text-base leading-relaxed
+          prose-headings:font-black prose-headings:text-foreground
+          prose-p:text-muted-foreground prose-p:leading-relaxed
+          prose-strong:text-foreground
+          prose-li:text-muted-foreground
+          prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+          <ReactMarkdown>{article.content}</ReactMarkdown>
+        </div>
+
+        {/* Footer disclaimer */}
+        <div className="mt-12 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-800">
+          {t.articleDisclaimer}
+        </div>
+
+        {/* CTA */}
+        <div className="mt-8 p-6 bg-card border border-border rounded-2xl text-center">
+          <BookOpen className="w-8 h-8 text-primary mx-auto mb-3" />
+          <h3 className="font-bold text-base mb-2">{t.articleCta}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{t.articleCtaDesc}</p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Button asChild>
+              <Link to="/therapists">{t.searchTherapists}</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/quiz">{t.startQuiz}</Link>
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

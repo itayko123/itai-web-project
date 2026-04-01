@@ -90,7 +90,10 @@ const AuthenticatedApp = () => {
           {/* --- נתיבים ציבוריים (זמינים לכולם) --- */}
           <Route path="/" element={<Home />} />
           <Route path="/therapists" element={<TherapistSearch />} />
-          <Route path="/therapist/:id" element={<TherapistProfile />} />
+          
+          {/* הוספנו את :name? כדי לתמוך בכתובות SEO דינמיות */}
+          <Route path="/therapist/:id/:name?" element={<TherapistProfile />} />
+          
           <Route path="/quiz" element={<MatchQuizPage />} />
           <Route path="/register-therapist" element={<RegisterTherapist />} />
           <Route path="/terms" element={<TermsPage />} />
@@ -99,7 +102,10 @@ const AuthenticatedApp = () => {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/articles" element={<ArticlesPage />} />
-          <Route path="/articles/:id" element={<ArticleDetailPage />} />
+          
+          {/* הוספנו את :slug? גם למאמרים */}
+          <Route path="/articles/:id/:slug?" element={<ArticleDetailPage />} />
+          
           <Route path="/support-declaration" element={<SupportDeclarationPage />} />
           <Route path="/accessibility" element={<AccessibilityPage />} />
           <Route path="/cookies" element={<CookiePolicyPage />} />

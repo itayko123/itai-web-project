@@ -15,6 +15,7 @@ import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages
 import { buildLabelMap, SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { toast } from "sonner";
 import { sanitizeFormData } from "@/utils/sanitize";
+import { Helmet } from "react-helmet-async";
 
 const professionLabels = { psychologist: "פסיכולוג/ית", psychiatrist: "פסיכיאטר/ית", psychotherapist: "פסיכותרפיסט/ית", social_worker: 'עו"ס קליני', counselor: "יועץ/ת" };
 const formatLabels = { in_person: "פנים אל פנים", zoom: "זום", phone: "טלפון" };
@@ -309,8 +310,27 @@ export default function TherapistProfile() {
     </div>
   );
 
+  // --- הכנת נתוני SEO ---
+  const profLabel = professionLabels[therapist.profession] || "מטפל/ת";
+  const cityText = therapist.city ? `ב${therapist.city}` : "";
+  const metaTitle = `${therapist.full_name} - ${profLabel} ${cityText} | מצא לי מטפל`;
+  
+  // ניקח את 150 התווים הראשונים מה"אודות" לטובת התיאור בגוגל
+  const metaDescription = therapist.about 
+    ? therapist.about.substring(0, 150) + "..."
+    : `צפו בפרופיל של ${therapist.full_name}, ${profLabel} ${cityText}. קראו מידע מקצועי, בדקו זמינות וצרו קשר ישירות ללא עמלות.`;
+
   return (
     <>
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
+        {/* תגיות לפייסבוק ולוואטסאפ (כדי שייראה יפה כשמשתפים לינק) */}
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDescription} />
+        {therapist.photo_url && <meta property="og:image" content={therapist.photo_url} />}
+      </Helmet>
+
       <div className="max-w-5xl mx-auto px-4 py-8">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowRight className="w-4 h-4" />
@@ -369,7 +389,7 @@ export default function TherapistProfile() {
               </div>
             </div>
 
-            {/* פרטי השירות (מקום של כבוד) */}
+            {/* פרטי השירות */}
             {(therapist.formats?.length > 0 || therapist.hmo_affiliation?.length > 0 || therapist.languages?.length > 0) && (
               <div className="bg-card border border-border rounded-2xl p-7">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -469,7 +489,7 @@ export default function TherapistProfile() {
             )}
           </div>
 
-          {/* Sidebar - צד שמאל המכווץ */}
+          {/* Sidebar - צד שמאל */}
           <div className="space-y-4">
             <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm">
               {therapist.price_per_session && (
@@ -500,7 +520,7 @@ export default function TherapistProfile() {
                 </div>
               )}
 
-              {/* כפתור מעבר לאתר אינטרנט (אם יש) */}
+              {/* כפתור מעבר לאתר אינטרנט */}
               {therapist.website && (
                 <div className="mb-4">
                   <a href={therapist.website} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2 rounded-xl transition-colors text-sm">
@@ -525,7 +545,7 @@ export default function TherapistProfile() {
 
       <PhoneRevealModal
         therapist={therapist}
-        open={showPhoneModal}
+        open={showPhoneModal}ד
         onClose={() => setShowPhoneModal(false)}
       />
     </>
