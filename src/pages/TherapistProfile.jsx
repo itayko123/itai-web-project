@@ -24,15 +24,30 @@ const langLabels = { hebrew: "עברית", english: "אנגלית", arabic: "ע�
 const specLabels = buildLabelMap(SPECIALIZATION_GROUPS, "he");
 const treatmentLabels = buildLabelMap(TREATMENT_METHOD_GROUPS, "he");
 
-// פונקציית העזר ל-reCAPTCHA
+// פונקציית העזר ל-reCAPTCHA - משופרת עם לוגים
 async function getRecaptchaToken(action) {
   return new Promise((resolve) => {
-    if (!window.grecaptcha) { resolve(null); return; }
+    if (typeof window === 'undefined' || !window.grecaptcha) { 
+      console.error("reCAPTCHA script not found on page. Make sure it's in index.html");
+      resolve(null); 
+      return; 
+    }
     window.grecaptcha.ready(() => {
-      window.grecaptcha
-        .execute("6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI", { action })
-        .then(resolve)
-        .catch(() => resolve(null));
+      try {
+        window.grecaptcha
+          .execute("6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI", { action })
+          .then((token) => {
+            if (!token) console.warn("reCAPTCHA returned an empty token.");
+            resolve(token);
+          })
+          .catch((err) => {
+            console.error("reCAPTCHA execution error:", err);
+            resolve(null);
+          });
+      } catch (err) {
+        console.error("reCAPTCHA ready block error:", err);
+        resolve(null);
+      }
     });
   });
 }
@@ -44,16 +59,21 @@ function PhoneRevealModal({ therapist, open, onClose }) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      // 1. קבלת טוקן מגוגל
       const token = await getRecaptchaToken("phone_reveal");
-      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן).");
+      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן). בדוק חיבור אינטרנט או חוסמי פרסומות.");
       
-      const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
+      // 2. אימות מול השרת (Supabase Edge Function)
+      const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { 
+        body: { token } 
+      });
       
       if (captchaError || captchaRes?.success === false) {
-          console.error("Recaptcha failed:", captchaRes); 
-          throw new Error("אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לחשוף מספר.");
+          console.error("Server-side Recaptcha verification failed:", captchaRes); 
+          throw new Error(captchaRes?.message || "אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לחשוף מספר.");
       }
 
+      // 3. רישום הבקשה בבסיס הנתונים
       const { error: contactError } = await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         patient_name: sanitizeFormData(form).patient_name,
@@ -64,6 +84,7 @@ function PhoneRevealModal({ therapist, open, onClose }) {
       });
       if (contactError) throw contactError;
 
+      // 4. עדכון מונה הלידים של המטפל
       const currentLeads = therapist.lead_count || 0;
       const { error: therapistError } = await supabase
         .from("Therapist")
@@ -93,7 +114,7 @@ function PhoneRevealModal({ therapist, open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1">
           <X className="w-5 h-5" />
@@ -192,11 +213,7 @@ function ContactForm({ therapist }) {
       if (contactError) throw contactError;
 
       const currentLeads = therapist.lead_count || 0;
-      const { error: therapistError } = await supabase
-        .from("Therapist")
-        .update({ lead_count: currentLeads + 1 })
-        .eq("id", therapist.id);
-      if (therapistError) throw therapistError;
+      await supabase.from("Therapist").update({ lead_count: currentLeads + 1 }).eq("id", therapist.id);
     },
     onSuccess: () => {
       setSubmitted(true);
@@ -310,12 +327,9 @@ export default function TherapistProfile() {
     </div>
   );
 
-  // --- הכנת נתוני SEO ---
   const profLabel = professionLabels[therapist.profession] || "מטפל/ת";
   const cityText = therapist.city ? `ב${therapist.city}` : "";
   const metaTitle = `${therapist.full_name} - ${profLabel} ${cityText} | מצא לי מטפל`;
-  
-  // ניקח את 150 התווים הראשונים מה"אודות" לטובת התיאור בגוגל
   const metaDescription = therapist.about 
     ? therapist.about.substring(0, 150) + "..."
     : `צפו בפרופיל של ${therapist.full_name}, ${profLabel} ${cityText}. קראו מידע מקצועי, בדקו זמינות וצרו קשר ישירות ללא עמלות.`;
@@ -325,7 +339,6 @@ export default function TherapistProfile() {
       <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDescription} />
-        {/* תגיות לפייסבוק ולוואטסאפ (כדי שייראה יפה כשמשתפים לינק) */}
         <meta property="og:title" content={metaTitle} />
         <meta property="og:description" content={metaDescription} />
         {therapist.photo_url && <meta property="og:image" content={therapist.photo_url} />}
@@ -337,9 +350,8 @@ export default function TherapistProfile() {
           חזרה לחיפוש
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content - צד ימין (בעברית) */}
-          <div className="lg:col-span-2 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" dir="rtl">
+          <div className="lg:col-span-2 space-y-5 text-right">
             {/* Header card */}
             <div className="bg-card border border-border rounded-2xl p-7">
               <div className="flex gap-6 flex-wrap">
@@ -362,7 +374,7 @@ export default function TherapistProfile() {
                       </div>
                     )}
                   </div>
-                  <p className="text-muted-foreground text-base mt-0.5">{professionLabels[therapist.profession]}</p>
+                  <p className="text-muted-foreground text-base mt-0.5">{profLabel}</p>
 
                   <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-sm font-semibold ${
                     therapist.immediate_availability
@@ -393,7 +405,6 @@ export default function TherapistProfile() {
             {(therapist.formats?.length > 0 || therapist.hmo_affiliation?.length > 0 || therapist.languages?.length > 0) && (
               <div className="bg-card border border-border rounded-2xl p-7">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* אופני טיפול */}
                   {therapist.formats?.length > 0 && (
                     <div className="flex items-start gap-4">
                       <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
@@ -407,8 +418,6 @@ export default function TherapistProfile() {
                       </div>
                     </div>
                   )}
-
-                  {/* קבלת קהל (קופות חולים/פרטי) */}
                   {therapist.hmo_affiliation?.length > 0 && (
                     <div className="flex items-start gap-4">
                       <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
@@ -422,8 +431,6 @@ export default function TherapistProfile() {
                       </div>
                     </div>
                   )}
-
-                  {/* שפות */}
                   {therapist.languages?.length > 0 && (
                     <div className="flex items-start gap-4">
                       <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
@@ -448,7 +455,7 @@ export default function TherapistProfile() {
                   <BookOpen className="w-5 h-5 text-primary" />
                   אודות המטפל/ת
                 </h2>
-                <p className="text-base text-muted-foreground leading-relaxed">{therapist.about}</p>
+                <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">{therapist.about}</p>
                 <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
                   <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-700">
@@ -472,26 +479,11 @@ export default function TherapistProfile() {
                 </div>
               </div>
             )}
-
-            {/* Treatment methods */}
-            {therapist.treatment_types?.length > 0 && (
-              <div className="bg-card border border-border rounded-2xl p-7">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-primary" />
-                  שיטות וגישות טיפוליות
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {therapist.treatment_types.map(t => (
-                    <Badge key={t} className="bg-accent text-accent-foreground text-sm px-3 py-1">{treatmentLabels[t] || t}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Sidebar - צד שמאל */}
+          {/* Sidebar */}
           <div className="space-y-4">
-            <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm text-right">
               {therapist.price_per_session && (
                 <div className="mb-4 text-center pb-4 border-b border-border">
                   <div className="text-3xl font-black text-foreground">₪{therapist.price_per_session}</div>
@@ -499,7 +491,6 @@ export default function TherapistProfile() {
                 </div>
               )}
 
-              {/* כפתור טלפון */}
               {therapist.phone && therapist.immediate_availability && (
                 <div className="mb-4 relative">
                   <button
@@ -520,7 +511,6 @@ export default function TherapistProfile() {
                 </div>
               )}
 
-              {/* כפתור מעבר לאתר אינטרנט */}
               {therapist.website && (
                 <div className="mb-4">
                   <a href={therapist.website} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2 rounded-xl transition-colors text-sm">
@@ -530,7 +520,6 @@ export default function TherapistProfile() {
                 </div>
               )}
 
-              {/* טופס יצירת קשר */}
               <ContactForm therapist={therapist} />
 
               {therapist.license_number && (
