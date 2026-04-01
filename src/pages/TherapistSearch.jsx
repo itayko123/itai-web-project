@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import TherapistCard from "@/components/therapist/TherapistCard";
@@ -8,7 +8,6 @@ import { SlidersHorizontal, Loader2, ChevronRight, ChevronLeft, Search } from "l
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Helmet } from "react-helmet-async";
 
 const defaultFilters = { profession: "all", city: "all", format: "all", hmo: "all", gender: "all", maxPrice: 800, immediate: false, specialization: "all", treatment_method: "all", language: "all" };
 const PAGE_SIZE = 12;
@@ -28,158 +27,124 @@ export default function TherapistSearch() {
     immediate: urlParams.get("immediate") === "true",
   });
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const [nameSearch, setNameSearch] = useState(urlParams.get("name") || "");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["therapists", filters, page, searchTerm],
+  const { data: therapists = [], isLoading } = useQuery({
+    queryKey: ["therapists"],
     queryFn: async () => {
-      let query = supabase
+      // תיקון השאילתה: הסרנו את status ואת average_rating שעשו בעיות!
+      const { data, error } = await supabase
         .from("Therapist")
-        .select("*", { count: "exact" });
-
-      if (filters.profession !== "all") query = query.eq("profession", filters.profession);
-      if (filters.city !== "all") query = query.eq("city", filters.city);
-      if (filters.gender !== "all") query = query.eq("gender", filters.gender);
-      if (filters.immediate) query = query.eq("immediate_availability", true);
-      if (filters.maxPrice < 800) query = query.lte("price_per_session", filters.maxPrice);
-      if (filters.format !== "all") query = query.contains("formats", [filters.format]);
-      if (filters.hmo !== "all") query = query.contains("hmo_affiliation", [filters.hmo]);
-      if (filters.specialization !== "all") query = query.contains("specializations", [filters.specialization]);
-      if (filters.treatment_method !== "all") query = query.contains("treatment_types", [filters.treatment_method]);
-      if (filters.language !== "all") query = query.contains("languages", [filters.language]);
-
-      if (searchTerm) {
-        query = query.ilike("full_name", `%${searchTerm}%`);
+        .select("*")
+        .limit(200);
+        
+      if (error) {
+        console.error("Error fetching therapists:", error);
+        throw error;
       }
-
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-
-      const { data, error, count } = await query
-        .order("immediate_availability", { ascending: false })
-        .order("created_at", { ascending: false })
-        .range(from, to);
-
-      if (error) throw error;
-      return { therapists: data, total: count };
+      return data ?? [];
     },
+    staleTime: 5 * 60 * 1000,
   });
 
-  const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
+  const filtered = useMemo(() => therapists.filter(t => {
+    if (filters.profession !== "all" && t.profession !== filters.profession) return false;
+    if (filters.city !== "all" && t.city !== filters.city) return false;
+    if (filters.format !== "all" && !t.formats?.includes(filters.format)) return false;
+    if (filters.hmo !== "all" && !t.hmo_affiliation?.includes(filters.hmo)) return false;
+    if (filters.gender !== "all" && t.gender !== filters.gender) return false;
+    if (filters.maxPrice < 800 && t.price_per_session && t.price_per_session > filters.maxPrice) return false;
+    if (filters.immediate && !t.immediate_availability) return false;
+    if (filters.specialization !== "all" && !t.specializations?.includes(filters.specialization)) return false;
+    if (filters.treatment_method !== "all" && !t.treatment_types?.includes(filters.treatment_method)) return false;
+    if (filters.language !== "all" && !t.languages?.includes(filters.language)) return false;
+    
+    if (nameSearch.trim()) {
+      const q = nameSearch.trim().toLowerCase();
+      if (!(t.full_name || "").toLowerCase().includes(q)) return false;
+    }
+    
+    return true;
+  }), [therapists, filters, nameSearch]);
 
-  // --- הכנת נתוני SEO חכמים לפי הפילטרים ---
-  const seoProfessionLabels = {
-    all: "מטפלים ופסיכולוגים",
-    psychologist: "פסיכולוגים",
-    psychiatrist: "פסיכיאטרים",
-    psychotherapist: "פסיכותרפיסטים",
-    social_worker: 'עובדים סוציאליים קליניים',
-    counselor: "יועצים טיפוליים"
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    setPage(1);
   };
 
-  const currentProfession = seoProfessionLabels[filters.profession] || "מטפלים";
-  const currentCity = filters.city !== "all" ? ` ב${filters.city}` : "";
-  const seoTitle = `${currentProfession}${currentCity} מומלצים | מצא לי מטפל`;
-  const seoDescription = `מחפשים ${currentProfession}${currentCity}? היכנסו למאגר המקיף של מצא לי מטפל, סננו לפי מחיר, סוג טיפול וזמינות, וצרו קשר ישירות ללא עמלות.`;
-
   return (
-    <>
-      <Helmet>
-        <title>{seoTitle}</title>
-        <meta name="description" content={seoDescription} />
-        <meta property="og:title" content={seoTitle} />
-        <meta property="og:description" content={seoDescription} />
-      </Helmet>
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-2xl font-bold">מצא מטפל</h1>
+          <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">✅ חינמי למטופלים</span>
+        </div>
+        
+        <div className="relative mt-3 max-w-sm">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={nameSearch}
+            onChange={e => { setNameSearch(e.target.value); setPage(1); }}
+            placeholder="חיפוש לפי שם מטפל..."
+            className="pr-9 h-10 text-sm"
+          />
+        </div>
+        
+        <p className="text-sm text-muted-foreground mt-2">{filtered.length} מטפלים נמצאו</p>
+      </div>
 
-      <div className="bg-background min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight mb-2">מצאו את המטפל/ת המתאים לכם</h1>
-              <p className="text-muted-foreground">
-                {data?.total ? `${data.total} מטפלים נמצאו עבורכם` : "מחפשים מטפלים..."}
-              </p>
-            </div>
+      <div className="flex gap-6">
+        <aside className="hidden lg:block w-64 flex-shrink-0" aria-label="פילטרים">
+          <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
+        </aside>
 
-            <div className="flex items-center gap-2">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="חיפוש לפי שם..."
-                  className="pr-9"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                />
-              </div>
-
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="lg:hidden gap-2">
-                    <SlidersHorizontal className="w-4 h-4" />
-                    מסננים
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                  <div className="py-4">
-                    <FilterPanel
-                      filters={filters}
-                      setFilters={(f) => {
-                        setFilters(f);
-                        setPage(1);
-                      }}
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+        <div className="flex-1 min-w-0">
+          <div className="lg:hidden mb-4">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" aria-label="פתח פאנל סינון">
+                  <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
+                  סינון
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80 overflow-y-auto" dir="rtl">
+                <div className="pt-6 pb-10">
+                  <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground animate-pulse">טוען מטפלים מומלצים...</p>
+              <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" aria-label="טוען מטפלים..." />
+              <p className="text-muted-foreground animate-pulse">טוען מטפלים...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-20 bg-muted/30 rounded-3xl border-2 border-dashed">
+              <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <Search className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">לא נמצאו מטפלים</h3>
+              <p className="text-muted-foreground mb-6">נסו להסיר חלק מהמסננים או לשנות את החיפוש</p>
+              <Button onClick={() => { setFilters(defaultFilters); setNameSearch(""); }} variant="outline">אפס את כל המסננים</Button>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <aside className="hidden lg:block lg:col-span-1">
-                  <div className="sticky top-24">
-                    <FilterPanel
-                      filters={filters}
-                      setFilters={(f) => {
-                        setFilters(f);
-                        setPage(1);
-                      }}
-                    />
-                  </div>
-                </aside>
-
-                <main className="lg:col-span-3">
-                  {data?.therapists.length === 0 ? (
-                    <div className="text-center py-20 bg-muted/30 rounded-3xl border-2 border-dashed">
-                      <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                        <Search className="w-8 h-8 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2">לא נמצאו מטפלים</h3>
-                      <p className="text-muted-foreground mb-6">נסו להסיר חלק מהמסננים כדי לראות תוצאות רלוונטיות</p>
-                      <Button onClick={() => setFilters(defaultFilters)} variant="outline">אפס את כל המסננים</Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {data?.therapists.map((therapist) => (
-                        <TherapistCard key={therapist.id} therapist={therapist} />
-                      ))}
-                    </div>
-                  )}
-                </main>
-              </div>
+              <section aria-label="רשימת מטפלים">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {paginated.map((t, i) => (
+                    <TherapistCard key={t.id} therapist={t} priority={i < 4} />
+                  ))}
+                </div>
+              </section>
 
               {totalPages > 1 && (
-                <nav className="flex justify-center items-center gap-2 mt-12 pb-8" aria-label="ניווט עמודים">
+                <nav className="flex items-center justify-center gap-2 mt-8" aria-label="דפים">
                   <Button
                     variant="outline"
                     size="sm"
@@ -217,6 +182,6 @@ export default function TherapistSearch() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
