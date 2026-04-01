@@ -1,117 +1,117 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://www.findmytherapist.co.il/</loc>
+    <loc>https://itai-web-project.vercel.app/</loc>
     <changefreq>daily</changefreq>
     <priority>1</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapists</loc>
+    <loc>https://itai-web-project.vercel.app/therapists</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/articles</loc>
+    <loc>https://itai-web-project.vercel.app/articles</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/quiz</loc>
+    <loc>https://itai-web-project.vercel.app/quiz</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/how-it-works</loc>
+    <loc>https://itai-web-project.vercel.app/how-it-works</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/faq</loc>
+    <loc>https://itai-web-project.vercel.app/faq</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/contact</loc>
+    <loc>https://itai-web-project.vercel.app/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/accessibility</loc>
+    <loc>https://itai-web-project.vercel.app/accessibility</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/privacy</loc>
+    <loc>https://itai-web-project.vercel.app/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/terms</loc>
+    <loc>https://itai-web-project.vercel.app/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/cookie-policy</loc>
+    <loc>https://itai-web-project.vercel.app/cookies</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69c1455cd1e0e27765e8cd82</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69c1455cd1e0e27765e8cd82/אורית</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69bf373fcc4999d60b4e0496</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69bf373fcc4999d60b4e0496/ik</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69bde86b6b316d6e33c5e694</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69bde86b6b316d6e33c5e694/דר-מיכל-כהן</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69bde86b6b316d6e33c5e699</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69bde86b6b316d6e33c5e699/אמיר-חדד</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69bde86b6b316d6e33c5e697</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69bde86b6b316d6e33c5e697/יוסי-גולדברג</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69bde86b6b316d6e33c5e695</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69bde86b6b316d6e33c5e695/דן-לוי</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69c145b54e36e25b158c274f</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69c145b54e36e25b158c274f/ik</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69bde86b6b316d6e33c5e698</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69bde86b6b316d6e33c5e698/נועה-שפירא</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/69bde86b6b316d6e33c5e696</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/69bde86b6b316d6e33c5e696/דר-רונית-אברהם</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/06f37a27-8758-49a4-a21c-f6519d32af9b</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/06f37a27-8758-49a4-a21c-f6519d32af9b/משה-לוי</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/therapist/d2b7a8c2-ef18-47e4-a983-ec001043cb9e</loc>
+    <loc>https://itai-web-project.vercel.app/therapist/d2b7a8c2-ef18-47e4-a983-ec001043cb9e/שלום-שלום</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.findmytherapist.co.il/article/6b873644-7025-45ca-9422-82408e0ecb64</loc>
+    <loc>https://itai-web-project.vercel.app/articles/6b873644-7025-45ca-9422-82408e0ecb64/ניסיון-1</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

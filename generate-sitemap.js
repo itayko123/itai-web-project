@@ -8,6 +8,7 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// הדומיין החדש שלנו!
 const SITE_URL = 'https://itai-web-project.vercel.app'; 
 
 const staticPages = [
@@ -21,30 +22,27 @@ const staticPages = [
   { url: '/accessibility', priority: 0.3, changefreq: 'yearly' },
   { url: '/privacy', priority: 0.3, changefreq: 'yearly' },
   { url: '/terms', priority: 0.3, changefreq: 'yearly' },
-  { url: '/cookie-policy', priority: 0.3, changefreq: 'yearly' },
+  { url: '/cookies', priority: 0.3, changefreq: 'yearly' },
 ];
 
-// פונקציית עזר להפיכת שם בעברית/אנגלית ל-URL תקני
 function generateSlug(text) {
   if (!text) return '';
   return text
     .trim()
-    .replace(/\s+/g, '-') // מחליף רווחים במקפים
-    .replace(/[^a-zA-Zא-ת0-9-]/g, ''); // מנקה תווים מיוחדים שאינם אותיות/מספרים/מקפים
+    .replace(/\s+/g, '-') 
+    .replace(/[^a-zA-Zא-ת0-9-]/g, ''); 
 }
 
 async function generateSitemap() {
   console.log('Generating sitemap...');
 
   try {
-    // 1. שולפים עכשיו גם את השם של המטפל (full_name) כדי לבנות URL יפה!
     const { data: therapists, error: therapistsError } = await supabase
       .from('Therapist')
       .select('id, full_name');
     
     if (therapistsError) throw therapistsError;
 
-    // 2. שולפים גם את הכותרת של המאמרים
     const { data: articles, error: articlesError } = await supabase
       .from('Article')
       .select('id, title');
@@ -54,6 +52,7 @@ async function generateSitemap() {
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     sitemap += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
+    // 1. עמודים סטטיים
     staticPages.forEach((page) => {
       sitemap += `  <url>\n`;
       sitemap += `    <loc>${SITE_URL}${page.url}</loc>\n`;
@@ -62,13 +61,11 @@ async function generateSitemap() {
       sitemap += `  </url>\n`;
     });
 
+    // 2. מטפלים (דינמי)
     if (therapists) {
       therapists.forEach((therapist) => {
-        // מייצרים את הסלאג (למשל: "ישראל-ישראלי")
         const slug = generateSlug(therapist.full_name);
-        
         sitemap += `  <url>\n`;
-        // כאן הקישור כולל גם את ה-ID וגם את השם המעוצב!
         sitemap += `    <loc>${SITE_URL}/therapist/${therapist.id}/${slug}</loc>\n`;
         sitemap += `    <changefreq>weekly</changefreq>\n`;
         sitemap += `    <priority>0.8</priority>\n`;
@@ -76,10 +73,10 @@ async function generateSitemap() {
       });
     }
 
+    // 3. מאמרים (דינמי)
     if (articles) {
       articles.forEach((article) => {
         const slug = generateSlug(article.title);
-        
         sitemap += `  <url>\n`;
         sitemap += `    <loc>${SITE_URL}/articles/${article.id}/${slug}</loc>\n`;
         sitemap += `    <changefreq>monthly</changefreq>\n`;
