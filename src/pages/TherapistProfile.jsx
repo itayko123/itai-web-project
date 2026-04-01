@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link } from "react-router-dom";
 import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send, Phone, X } from "lucide-react";
 import { buildLabelMap, SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { toast } from "sonner";
@@ -45,16 +44,12 @@ function PhoneRevealModal({ therapist, open, onClose }) {
   const mutation = useMutation({
     mutationFn: async () => {
       const token = await getRecaptchaToken("phone_reveal");
-      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן).");
+      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט.");
       
       const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
-      
-      if (captchaError || captchaRes?.success === false) {
-          console.error("Recaptcha failed:", captchaRes); 
-          throw new Error("אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לחשוף מספר.");
-      }
+      if (captchaError || captchaRes?.success === false) throw new Error("אימות אנושי נכשל.");
 
-      const { error: contactError } = await supabase.from("ContactRequest").insert({
+      await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         patient_name: sanitizeFormData(form).patient_name,
         patient_phone: sanitizeFormData(form).contact_info,
@@ -62,91 +57,46 @@ function PhoneRevealModal({ therapist, open, onClose }) {
         status: "responded",
         created_date: new Date().toISOString(),
       });
-      if (contactError) throw contactError;
 
       const currentLeads = therapist.lead_count || 0;
-      const { error: therapistError } = await supabase
-        .from("Therapist")
-        .update({ lead_count: currentLeads + 1 })
-        .eq("id", therapist.id);
-      if (therapistError) throw therapistError;
+      await supabase.from("Therapist").update({ lead_count: currentLeads + 1 }).eq("id", therapist.id);
     },
     onSuccess: () => {
       setRevealed(true);
-      toast.success("המספר נחשף בהצלחה!");
+      toast.success("המספר נחשף!");
     },
-    onError: (error) => {
-      console.error("Error revealing phone:", error);
-      toast.error(error.message || "שגיאה בחשיפת המספר, נסה שוב.");
-    }
+    onError: (error) => toast.error(error.message || "שגיאה בחשיפת המספר")
   });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.patient_name || !form.contact_info) {
-      toast.error("יש למלא את כל השדות");
-      return;
-    }
-    mutation.mutate();
-  };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1">
-          <X className="w-5 h-5" />
-        </button>
-        
-        <div className="p-6 sm:p-8">
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-4 mx-auto">
-            <Phone className="w-6 h-6 text-emerald-600" />
-          </div>
-          <h2 className="text-xl font-bold text-center mb-2">צפייה במספר טלפון</h2>
-          
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+        <div className="p-8">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-4 mx-auto"><Phone className="w-6 h-6 text-emerald-600" /></div>
+          <h2 className="text-xl font-bold text-center mb-6">צפייה במספר טלפון</h2>
           {revealed ? (
             <div className="text-center space-y-4 py-4">
               <p className="text-muted-foreground">המספר של {therapist.full_name}:</p>
-              <a href={`tel:${therapist.phone}`} className="inline-block text-3xl font-black text-primary hover:underline" dir="ltr">
-                {therapist.phone}
-              </a>
+              <a href={`tel:${therapist.phone}`} className="text-3xl font-black text-primary block" dir="ltr">{therapist.phone}</a>
               <Button onClick={onClose} className="w-full mt-4" variant="outline">סגור</Button>
             </div>
           ) : (
-            <>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                כדי לראות את המספר, אנא השאר פרטים בסיסיים והוכח שאינך רובוט.
-              </p>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label>שם מלא *</Label>
-                  <Input 
-                    value={form.patient_name} 
-                    onChange={e => setForm({...form, patient_name: e.target.value})} 
-                    placeholder="ישראל ישראלי" 
-                    required 
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>טלפון / אימייל  *</Label>
-                  <Input 
-                    value={form.contact_info} 
-                    onChange={e => setForm({...form, contact_info: e.target.value})} 
-                    placeholder="לצורך זיהוי ספאם" 
-                    required 
-                  />
-                </div>
-                
-                <div className="text-xs text-muted-foreground text-center pt-2">
-                  לחיצה על חשיפת מספר מהווה אישור לאימות אנושי (reCAPTCHA)
-                </div>
-
-                <Button type="submit" disabled={mutation.isPending} className="w-full font-bold bg-emerald-500 hover:bg-emerald-600 text-white mt-2">
-                  {mutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin ml-2" />מאמת ומציג...</> : "אני לא רובוט - הצג מספר"}
-                </Button>
-              </form>
-            </>
+            <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>שם מלא *</Label>
+                <Input value={form.patient_name} onChange={e => setForm({...form, patient_name: e.target.value})} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>טלפון / אימייל *</Label>
+                <Input value={form.contact_info} onChange={e => setForm({...form, contact_info: e.target.value})} required />
+              </div>
+              <Button type="submit" disabled={mutation.isPending} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold">
+                {mutation.isPending ? "מאמת..." : "הצג מספר"}
+              </Button>
+            </form>
           )}
         </div>
       </div>
@@ -158,127 +108,40 @@ function ContactForm({ therapist }) {
   const [form, setForm] = useState({ patient_name: "", patient_email: "", patient_phone: "", message: "", preferred_format: "", tos_accepted: false });
   const [submitted, setSubmitted] = useState(false);
 
-  if (!therapist.immediate_availability) {
-    return (
-      <div className="text-center py-6 space-y-2">
-        <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mx-auto">
-          <XCircle className="w-5 h-5 text-muted-foreground" />
-        </div>
-        <p className="font-medium text-sm">המטפל/ת אינו/ה זמין/ה כעת</p>
-        <p className="text-xs text-muted-foreground">לא ניתן לשלוח פנייה למטפל שאינו מקבל מטופלים חדשים כרגע.</p>
-      </div>
-    );
-  }
-
   const mutation = useMutation({
     mutationFn: async () => {
       const token = await getRecaptchaToken("contact_form");
-      if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן).");
-      
-      const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
-      
-      if (captchaError || captchaRes?.success === false) {
-           console.error("Recaptcha failed:", captchaRes);
-           throw new Error("אימות אנושי נכשל (נחשדת כרובוט). לא ניתן לשלוח הודעה.");
-      }
+      const { data: captchaRes } = await supabase.functions.invoke("verifyRecaptcha", { body: { token } });
+      if (captchaRes?.success === false) throw new Error("אימות נכשל");
 
-      const { error: contactError } = await supabase.from("ContactRequest").insert({
+      await supabase.from("ContactRequest").insert({
         therapist_id: therapist.id,
         ...sanitizeFormData(form),
         contact_type: "message",
-        status: "pending", 
+        status: "pending",
         created_date: new Date().toISOString(),
       });
-      if (contactError) throw contactError;
-
-      const currentLeads = therapist.lead_count || 0;
-      const { error: therapistError } = await supabase
-        .from("Therapist")
-        .update({ lead_count: currentLeads + 1 })
-        .eq("id", therapist.id);
-      if (therapistError) throw therapistError;
     },
-    onSuccess: () => {
-      setSubmitted(true);
-      toast.success("הפנייה נשלחה בהצלחה!");
-    },
-    onError: (error) => {
-      toast.error(error.message || "שגיאה בשליחת הפנייה");
-    }
+    onSuccess: () => { setSubmitted(true); toast.success("הפנייה נשלחה!"); },
+    onError: () => toast.error("שגיאה בשליחת הפנייה")
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.tos_accepted) { toast.error("יש לאשר את תנאי השימוש"); return; }
-    if (!form.patient_name || !form.patient_email) { toast.error("יש למלא שם ואימייל"); return; }
-    mutation.mutate();
-  };
-
-  if (submitted) {
-    return (
-      <div className="text-center py-8">
-        <CheckCircle2 className="w-12 h-12 text-primary mx-auto mb-3" />
-        <h3 className="font-bold text-lg mb-1">הפנייה נשלחה!</h3>
-        <p className="text-sm text-muted-foreground">המטפל יצור איתך קשר בהקדם.</p>
-      </div>
-    );
-  }
+  if (!therapist.immediate_availability) return <p className="text-center text-sm text-muted-foreground py-4">המטפל אינו זמין לפניות חדשות</p>;
+  if (submitted) return <div className="text-center py-6"><CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-2" /><p className="font-bold">הפנייה נשלחה!</p></div>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <h3 className="font-bold text-base flex items-center gap-2 mb-1">
-        <Send className="w-4 h-4 text-primary" />
-        פנה/י אל המטפל
-      </h3>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">שם מלא *</Label>
-          <Input value={form.patient_name} onChange={e => setForm({...form, patient_name: e.target.value})} placeholder="ישראל ישראלי" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">טלפון</Label>
-          <Input value={form.patient_phone} onChange={e => setForm({...form, patient_phone: e.target.value})} placeholder="050-0000000" />
-        </div>
+    <form onSubmit={(e) => { e.preventDefault(); if(form.tos_accepted) mutation.mutate(); else toast.error("יש לאשר תנאי שימוש"); }} className="space-y-3">
+      <h3 className="font-bold flex items-center gap-2"><Send className="w-4 h-4 text-primary" /> פנה/י למטפל</h3>
+      <Input placeholder="שם מלא *" value={form.patient_name} onChange={e => setForm({...form, patient_name: e.target.value})} required />
+      <Input placeholder="טלפון *" value={form.patient_phone} onChange={e => setForm({...form, patient_phone: e.target.value})} required />
+      <Input placeholder="אימייל *" type="email" value={form.patient_email} onChange={e => setForm({...form, patient_email: e.target.value})} required />
+      <Textarea placeholder="הודעה..." value={form.message} onChange={e => setForm({...form, message: e.target.value})} rows={3} />
+      <div className="flex items-start gap-2 py-2">
+        <Checkbox id="tos" checked={form.tos_accepted} onCheckedChange={v => setForm({...form, tos_accepted: v})} />
+        <label htmlFor="tos" className="text-[11px] leading-tight text-muted-foreground">אני מאשר/ת את תנאי השימוש באתר</label>
       </div>
-
-      <div className="space-y-1">
-        <Label className="text-xs">אימייל *</Label>
-        <Input type="email" value={form.patient_email} onChange={e => setForm({...form, patient_email: e.target.value})} placeholder="email@example.com" />
-      </div>
-
-      <div className="space-y-1">
-        <Label className="text-xs">פורמט מועדף</Label>
-        <Select onValueChange={v => setForm({...form, preferred_format: v})}>
-          <SelectTrigger><SelectValue placeholder="בחר פורמט" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="in_person">פנים אל פנים</SelectItem>
-            <SelectItem value="zoom">זום</SelectItem>
-            <SelectItem value="phone">טלפון</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
-        <Label className="text-xs">הודעה (אופציונלי)</Label>
-        <Textarea value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder="ספר/י בקצרה מה מביא/ה אותך לפנות..." rows={2} />
-      </div>
-
-      <div className="bg-muted/50 rounded-lg p-2.5 flex items-start gap-2.5">
-        <Checkbox id="tos" checked={form.tos_accepted} onCheckedChange={v => setForm({...form, tos_accepted: v})} className="mt-0.5" />
-        <label htmlFor="tos" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-          קראתי ואני מסכים/ה ל
-          <Link to="/terms" className="text-primary underline mx-1">תנאי השימוש</Link>
-          ומבין/ה כי הפלטפורמה אינה אחראית לתהליך.
-        </label>
-      </div>
-
-      <div className="text-[11px] text-muted-foreground text-center">
-        שליחת הפנייה מהווה אישור לאימות אנושי (reCAPTCHA)
-      </div>
-
-      <Button type="submit" disabled={mutation.isPending} className="w-full font-semibold h-9">
-        {mutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin ml-2" />שולח...</> : "שלח פנייה"}
+      <Button type="submit" disabled={mutation.isPending} className="w-full">
+        {mutation.isPending ? "שולח..." : "שלח פנייה"}
       </Button>
     </form>
   );
@@ -292,262 +155,114 @@ export default function TherapistProfile() {
   const { data: therapist, isLoading } = useQuery({
     queryKey: ["therapist", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("Therapist").select("*").eq("id", id).limit(1);
+      const { data, error } = await supabase.from("Therapist").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      return data?.[0] ?? null;
+      return data;
     },
   });
 
-  if (isLoading) return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-    </div>
-  );
+  if (isLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  if (!therapist) return <div className="text-center py-20"><p>מטפל לא נמצא</p><Button onClick={() => navigate("/therapists")} variant="link">חזרה לחיפוש</Button></div>;
 
-  if (!therapist) return (
-    <div className="text-center py-20">
-      <p className="text-muted-foreground">מטפל לא נמצא</p>
-    </div>
-  );
-
-  // --- הכנת נתוני SEO ---
-  const profLabel = professionLabels[therapist.profession] || "מטפל/ת";
-  const cityText = therapist.city ? `ב${therapist.city}` : "";
-  const metaTitle = `${therapist.full_name} - ${profLabel} ${cityText} | מצא לי מטפל`;
-  
-  // ניקח את 150 התווים הראשונים מה"אודות" לטובת התיאור בגוגל
-  const metaDescription = therapist.about 
-    ? therapist.about.substring(0, 150) + "..."
-    : `צפו בפרופיל של ${therapist.full_name}, ${profLabel} ${cityText}. קראו מידע מקצועי, בדקו זמינות וצרו קשר ישירות ללא עמלות.`;
+  const profLabel = professionLabels[therapist.profession] || therapist.profession || "מטפל/ת";
+  // תמיכה בשני שמות שדות אפשריים (bio או about)
+  const bioContent = therapist.bio || therapist.about;
+  // תמיכה בשני שמות שדות לתמונה
+  const profileImg = therapist.profile_image_url || therapist.photo_url;
 
   return (
     <>
       <Helmet>
-        <title>{metaTitle}</title>
-        <meta name="description" content={metaDescription} />
-        {/* תגיות לפייסבוק ולוואטסאפ (כדי שייראה יפה כשמשתפים לינק) */}
-        <meta property="og:title" content={metaTitle} />
-        <meta property="og:description" content={metaDescription} />
-        {therapist.photo_url && <meta property="og:image" content={therapist.photo_url} />}
+        <title>{`${therapist.full_name} - ${profLabel} | מצא לי מטפל`}</title>
       </Helmet>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowRight className="w-4 h-4" />
-          חזרה לחיפוש
+          <ArrowRight className="w-4 h-4 ml-1" /> חזרה
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content - צד ימין (בעברית) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-right" dir="rtl">
           <div className="lg:col-span-2 space-y-5">
-            {/* Header card */}
-            <div className="bg-card border border-border rounded-2xl p-7">
-              <div className="flex gap-6 flex-wrap">
-                <div className="w-32 h-32 rounded-2xl overflow-hidden bg-accent flex-shrink-0 shadow">
-                  {therapist.photo_url ? (
-                    <img src={therapist.photo_url} alt={therapist.full_name} className="w-full h-full object-cover" />
+            {/* Header Card */}
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+              <div className="flex gap-6 flex-col md:flex-row items-center md:items-start text-center md:text-right">
+                <div className="w-32 h-32 rounded-2xl overflow-hidden bg-accent flex-shrink-0 shadow-inner">
+                  {profileImg ? (
+                    <img src={profileImg} alt={therapist.full_name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-primary/40">
-                      {therapist.full_name?.charAt(0)}
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-primary/30 bg-primary/5">{therapist.full_name?.charAt(0)}</div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h1 className="text-2xl font-bold">{therapist.full_name}</h1>
-                    {therapist.license_verified && (
-                      <div className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-sm font-medium">
-                        <BadgeCheck className="w-4 h-4" />
-                        רישיון מאומת
-                      </div>
-                    )}
+                <div className="flex-1">
+                  <div className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
+                    <h1 className="text-3xl font-black">{therapist.full_name}</h1>
+                    {therapist.license_verified && <Badge variant="secondary" className="w-fit mx-auto md:mx-0 bg-emerald-50 text-emerald-700 border-emerald-100"><BadgeCheck className="w-3 h-3 ml-1" /> מאומת</Badge>}
                   </div>
-                  <p className="text-muted-foreground text-base mt-0.5">{professionLabels[therapist.profession]}</p>
-
-                  <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-sm font-semibold ${
-                    therapist.immediate_availability
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {therapist.immediate_availability
-                      ? <><CheckCircle2 className="w-3.5 h-3.5" /> פתוח/ה למטופלים חדשים</>
-                      : <><XCircle className="w-3.5 h-3.5" /> לא זמין/ה כעת</>
-                    }
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 mt-3">
-                    {therapist.city && (
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4" />{therapist.city}
-                      </span>
-                    )}
-                    {therapist.years_experience && (
-                      <span className="text-sm text-muted-foreground">{therapist.years_experience} שנות ניסיון</span>
-                    )}
+                  <p className="text-xl text-muted-foreground mb-3">{profLabel}</p>
+                  <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {therapist.city}</span>
+                    <span className="flex items-center gap-1"><GraduationCap className="w-4 h-4" /> {therapist.years_experience || therapist.years_of_experience} שנות ניסיון</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* פרטי השירות */}
-            {(therapist.formats?.length > 0 || therapist.hmo_affiliation?.length > 0 || therapist.languages?.length > 0) && (
-              <div className="bg-card border border-border rounded-2xl p-7">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* אופני טיפול */}
-                  {therapist.formats?.length > 0 && (
-                    <div className="flex items-start gap-4">
-                      <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
-                        <Video className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-0.5">אופני טיפול</h4>
-                        <p className="text-base font-bold text-foreground">
-                          {therapist.formats.map(f => formatLabels[f]).join(", ")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* קבלת קהל (קופות חולים/פרטי) */}
-                  {therapist.hmo_affiliation?.length > 0 && (
-                    <div className="flex items-start gap-4">
-                      <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
-                        <Users className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-0.5">קבלת קהל</h4>
-                        <p className="text-base font-bold text-foreground">
-                          {therapist.hmo_affiliation.map(h => hmoLabels[h]).join(", ")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* שפות */}
-                  {therapist.languages?.length > 0 && (
-                    <div className="flex items-start gap-4">
-                      <div className="bg-primary/10 p-3 rounded-2xl text-primary flex-shrink-0">
-                        <Languages className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-0.5">שפות טיפול</h4>
-                        <p className="text-base font-bold text-foreground">
-                          {therapist.languages.map(l => langLabels[l] || l).join(", ")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            {/* About Section */}
+            {bioContent && (
+              <div className="bg-card border border-border rounded-2xl p-6">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 border-b pb-2"><BookOpen className="w-5 h-5 text-primary" /> אודות</h2>
+                <div className="text-base leading-relaxed text-slate-700 whitespace-pre-wrap">{bioContent}</div>
               </div>
             )}
 
-            {/* About section */}
-            {therapist.about && (
-              <div className="bg-card border border-border rounded-2xl p-7">
-                <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  אודות המטפל/ת
-                </h2>
-                <p className="text-base text-muted-foreground leading-relaxed">{therapist.about}</p>
-                <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700">
-                    כל מה שכתוב באודות המטפל/ת הוא באחריותו/ה הבלעדית. הפלטפורמה אינה אחראית לתוכן שנכתב על ידי המטפלים.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Specializations */}
-            {therapist.specializations?.length > 0 && (
-              <div className="bg-card border border-border rounded-2xl p-7">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-primary" />
-                  תחומי התמחות
-                </h2>
+            {/* Info Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h3 className="font-bold mb-3 flex items-center gap-2"><Briefcase className="w-4 h-4 text-primary" /> התמחויות</h3>
                 <div className="flex flex-wrap gap-2">
-                  {therapist.specializations.map(s => (
-                    <Badge key={s} variant="secondary" className="text-sm px-3 py-1">{specLabels[s] || s}</Badge>
-                  ))}
+                  {therapist.specializations?.map(s => <Badge key={s} variant="outline">{specLabels[s] || s}</Badge>)}
                 </div>
               </div>
-            )}
-
-            {/* Treatment methods */}
-            {therapist.treatment_types?.length > 0 && (
-              <div className="bg-card border border-border rounded-2xl p-7">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-primary" />
-                  שיטות וגישות טיפוליות
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {therapist.treatment_types.map(t => (
-                    <Badge key={t} className="bg-accent text-accent-foreground text-sm px-3 py-1">{treatmentLabels[t] || t}</Badge>
-                  ))}
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h3 className="font-bold mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> קופות חולים ושפות</h3>
+                <div className="space-y-2 text-sm">
+                  <p><strong>קופות:</strong> {therapist.hmo_affiliation?.map(h => hmoLabels[h] || h).join(", ") || "פרטי"}</p>
+                  <p><strong>שפות:</strong> {therapist.languages?.map(l => langLabels[l] || l).join(", ")}</p>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Sidebar - צד שמאל */}
+          {/* Sidebar */}
           <div className="space-y-4">
-            <div className="bg-card border border-border rounded-2xl p-5 sticky top-20 shadow-sm">
-              {therapist.price_per_session && (
-                <div className="mb-4 text-center pb-4 border-b border-border">
-                  <div className="text-3xl font-black text-foreground">₪{therapist.price_per_session}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">לפגישה</div>
-                </div>
-              )}
+            <div className="bg-card border-2 border-primary/10 rounded-2xl p-6 sticky top-24 shadow-md">
+              <div className="text-center mb-6">
+                <div className="text-4xl font-black text-primary">₪{therapist.price_per_session}</div>
+                <div className="text-sm text-muted-foreground mt-1">לפגישה</div>
+              </div>
 
-              {/* כפתור טלפון */}
               {therapist.phone && therapist.immediate_availability && (
-                <div className="mb-4 relative">
-                  <button
-                    onClick={() => setShowPhoneModal(true)}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-lg hover:shadow-xl"
-                    style={{ animation: "phonePulse 2s infinite" }}
-                  >
-                    <Phone className="w-5 h-5" />
-                    הצג מספר טלפון
-                  </button>
-                  <style>{`
-                    @keyframes phonePulse {
-                      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); transform: scale(1); }
-                      70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); transform: scale(1.02); }
-                      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); transform: scale(1); }
-                    }
-                  `}</style>
-                </div>
+                <Button 
+                  onClick={() => setShowPhoneModal(true)} 
+                  className="w-full h-12 text-lg font-bold bg-emerald-600 hover:bg-emerald-700 mb-6 shadow-emerald-100 shadow-lg"
+                >
+                  <Phone className="w-5 h-5 ml-2" /> הצג מספר טלפון
+                </Button>
               )}
 
-              {/* כפתור מעבר לאתר אינטרנט */}
-              {therapist.website && (
-                <div className="mb-4">
-                  <a href={therapist.website} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-2 rounded-xl transition-colors text-sm">
-                    <Globe className="w-4 h-4 text-primary" />
-                    מעבר לאתר המטפל/ת
-                  </a>
-                </div>
-              )}
-
-              {/* טופס יצירת קשר */}
               <ContactForm therapist={therapist} />
-
-              {therapist.license_number && (
-                <div className="mt-3 pt-3 border-t border-border text-[11px] text-muted-foreground text-center">
-                  מספר רישיון: {therapist.license_number}
-                </div>
+              
+              {therapist.website && (
+                <a href={therapist.website} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full mt-4 text-sm text-primary hover:underline">
+                  <Globe className="w-4 h-4" /> לאתר המטפל/ת
+                </a>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      <PhoneRevealModal
-        therapist={therapist}
-        open={showPhoneModal}ד
-        onClose={() => setShowPhoneModal(false)}
-      />
+      <PhoneRevealModal therapist={therapist} open={showPhoneModal} onClose={() => setShowPhoneModal(false)} />
     </>
   );
 }
