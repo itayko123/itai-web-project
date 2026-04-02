@@ -8,7 +8,7 @@ const hebrewToEnglish: Record<string, string> = {
   'ש':'sh', 'ת':'t',  '״':'-',  '׳':'',
 };
 
-const nameMap: Record<string, string> = {
+/*const nameMap: Record<string, string> = {
   // תארים
   'ד״ר':'dr', 'דר':'dr', 'פרופ':'prof', 'פרופסור':'professor',
 
@@ -144,7 +144,7 @@ const nameMap: Record<string, string> = {
 'נחמיה':'nehemia',      'עזריאל':'azriel',      'עזריה':'azaria',
 'חנניה':'chananya',     'מתתיהו':'matityahu',   'מרדכי':'mordechai',
 'פרחיה':'perchia',      'שלמה':'shlomo',        'פנחס':'pinchas',
-};
+};*/
 
 const cityMap : Record<string, string> =  {
   // ערים גדולות
