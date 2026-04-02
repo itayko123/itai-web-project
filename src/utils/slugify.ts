@@ -124,6 +124,26 @@ const nameMap: Record<string, string> = {
 'ברק':'barak',             'פלד':'peled',              'אלון':'alon',
 'נבון':'navon',            'שפיר':'shapir',            'גבע':'geva',
 'דרומי':'dromi',           'עמית':'amit',              'ארבל':'arbel',
+
+// שמות שנופלים לתעתוק רע
+'יוחאי':'yochai',       'יוחנן':'yochanan',    'יואל':'yoel',
+'יונתן':'yonatan',      'יונה':'yona',          'יורם':'yoram',
+'יוסי':'yossi',         'יוסף':'yosef',         'יובל':'yuval',
+'יעקב':'yaakov',        'יחיאל':'yechiel',      'יחזקאל':'yechezkel',
+'שטייניץ':'steinitz',   'שטיינר':'steiner',     'שטיינמן':'steinman',
+'בוימל':'boimel',       'ויינטראוב':'weintraub', 'גוטמן':'gutman',
+'רוטשילד':'rothschild', 'אוירבך':'auerbach',    'ויצמן':'weizman',
+'אוסישקין':'ussishkin', 'ברנדייס':'brandeis',   'טרומפלדור':'trumpeldor',
+'בוגרשוב':'bogroshov',  'גלבוע':'gilboa',       'שניאור':'shneor',
+'שניאורסון':'shneorson','פיינברג':'feinberg',   'לייבוביץ':'leibovitz',
+'צייטלין':'zeitlin',    'פרלשטיין':'perlstein', 'גינזבורג':'ginzburg',
+'אבינועם':'avinoam',    'אבינדב':'avinadav',    'אביעד':'aviad',
+'אביחיל':'avichail',    'אביגדור':'avigdor',    'אביעזר':'aviezer',
+'אחיעזר':'achiezer',    'אחינועם':'achinoam',   'שלומציון':'shlomtzion',
+'שמחה':'simcha',        'שמריהו':'shmaryahu',   'שמעיה':'shmaya',
+'נחמיה':'nehemia',      'עזריאל':'azriel',      'עזריה':'azaria',
+'חנניה':'chananya',     'מתתיהו':'matityahu',   'מרדכי':'mordechai',
+'פרחיה':'perchia',      'שלמה':'shlomo',        'פנחס':'pinchas',
 };
 
 const cityMap : Record<string, string> =  {
