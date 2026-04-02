@@ -22,16 +22,18 @@ function transliterate(text: string): string {
 export function generateTherapistSlug(
   fullName: string,
   profession: string,
-  city: string
+  city: string,
+  id: string
 ): string {
-  const namePart = transliterate(fullName);
-  const profPart = professionSlugs[profession] ?? profession;
-  const cityPart = transliterate(city ?? '');
+  const namePart = transliterate(fullName?.trim() || 'therapist');
+  const profPart = professionSlugs[profession] ?? profession ?? 'therapy';
+  const cityPart = transliterate(city?.trim() || 'israel');
+  const idSuffix = id?.slice(0, 8) ?? '';
 
-  return [namePart, profPart, cityPart]
+  return [namePart, profPart, cityPart, idSuffix]
     .join('-')
     .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '-') // remove special chars
-    .replace(/-+/g, '-')          // collapse multiple dashes
-    .replace(/^-|-$/g, '');       // trim leading/trailing dashes
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')       // collapse multiple dashes
+    .replace(/^-|-$/g, '');    // trim leading/trailing dashes
 }

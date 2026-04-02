@@ -222,7 +222,7 @@ export default function TherapistPortal() {
 const handleSave = () => {
   updateMutation.mutate({
     ...editData,
-    slug: generateTherapistSlug(editData.full_name, therapist.profession, editData.city), // ← ADD THIS
+    slug: generateTherapistSlug(editData.full_name, therapist.profession, editData.city, therapist.id),
     price_per_session: editData.price_per_session ? Number(editData.price_per_session) : undefined,
     years_experience: editData.years_experience ? Number(editData.years_experience) : undefined,
     formats: editFormats,
@@ -231,6 +231,8 @@ const handleSave = () => {
     specializations: editSpecs,
     languages: editLanguages,
   });
+};
+
 };
 
   const handlePhotoUpload = async (e) => {

@@ -166,8 +166,8 @@ export default function RegisterTherapist() {
         }
       }
       // --- סוף הבדיקה ---
-      
-      const therapistData = {
+    const tempId = crypto.randomUUID();  
+    const therapistData = {
   ...sanitizeFormData(form),
   slug: generateTherapistSlug(form.full_name, form.profession, form.city), // ← ADD THIS
   price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
