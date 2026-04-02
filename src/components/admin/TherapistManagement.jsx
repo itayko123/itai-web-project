@@ -217,6 +217,25 @@ function EditForm({ data, setData, onSave, onCancel, isSaving }) {
           </Select>
         </div>
       </div>
+        <div className="col-span-2 md:col-span-3">
+    <Label className="text-xs">כתובת URL (slug)</Label>
+      <Input
+        className="mt-1 h-8 text-sm font-mono"
+        dir="ltr"
+        value={data.slug || ""}
+        onChange={e => set("slug", e.target.value
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, '-')
+          .replace(/-+/g, '-')
+        )}
+        placeholder="moshe-levi-psychologist-tel-aviv"
+      />
+      {data.slug && (
+        <p className="text-xs text-muted-foreground mt-1 font-mono">
+          🔗 /therapist/{data.slug}
+        </p>
+      )}
+    </div>
       <div>
         <Label className="text-xs">אודות</Label>
         <Textarea className="mt-1 text-sm" rows={3} value={data.about || ""} onChange={e => set("about", e.target.value)} />

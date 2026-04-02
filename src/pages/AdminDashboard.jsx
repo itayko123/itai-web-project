@@ -332,6 +332,11 @@ function TherapistRegistrations({ onImageClick }) {
                 </div>
               )}
               {t.about && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t.about}</p>}
+              {t.slug && (
+                <p className="text-xs font-mono bg-muted px-2 py-1 rounded mt-1 text-muted-foreground">
+                  🔗 /therapist/{t.slug}
+                </p>
+              )}
               {t.license_document_url && (
                 <a href={t.license_document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
                   <ExternalLink className="w-3 h-3" /> מסמך רישיון
