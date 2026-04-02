@@ -230,10 +230,9 @@ const handleSave = () => {
     treatment_types: editTreatments,
     specializations: editSpecs,
     languages: editLanguages,
-  });
+  });        // ← closes mutate(
 };
 
-};
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
