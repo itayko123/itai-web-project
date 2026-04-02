@@ -17,6 +17,23 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { sanitizeFormData } from "@/utils/sanitize";
 import { generateTherapistSlug } from '@/utils/slugify';
 
+const professionSlugs = {
+  psychologist: 'psychologist',
+  psychiatrist: 'psychiatrist',
+  psychotherapist: 'psychotherapist',
+  social_worker: 'social-worker',
+  counselor: 'counselor',
+};
+
+const cityMap = {
+  'תל אביב':'tel-aviv','ירושלים':'jerusalem','חיפה':'haifa',
+  'ראשון לציון':'rishon-lezion','פתח תקווה':'petah-tikva','אשדוד':'ashdod',
+  'נתניה':'netanya','באר שבע':'beer-sheva','הרצליה':'herzliya',
+  'רמת גן':'ramat-gan','רעננה':'raanana','כפר סבא':'kfar-saba',
+  'הוד השרון':'hod-hasharon','מודיעין':'modiin','בני ברק':'bnei-brak',
+  'חולון':'holon','בת ים':'bat-yam','רחובות':'rehovot','נס ציונה':'nes-ziona',
+};
+
 const checkboxGroup = (label, items, selected, setSelected) => (
   <div className="space-y-1">
     <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
@@ -43,7 +60,18 @@ export default function RegisterTherapist() {
   const [uploadingLicense, setUploadingLicense] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
   const [licenseDocUrl, setLicenseDocUrl] = useState("");
-  const [form, setForm] = useState({ full_name: "", profession: "", license_number: "", about: "", city: "", phone: "", email: "", price_per_session: "", years_experience: "" });
+  const [form, setForm] = useState({
+    full_name: "",
+    name_en: "",       // ← NEW: English name for slug
+    profession: "",
+    license_number: "",
+    about: "",
+    city: "",
+    phone: "",
+    email: "",
+    price_per_session: "",
+    years_experience: ""
+  });
   
   const [immediateAvailability, setImmediateAvailability] = useState(false); 
   
@@ -91,6 +119,14 @@ export default function RegisterTherapist() {
     { value: "amharic", label: t.langAmharic || "אמהרית" },
   ];
 
+  // Auto-generate slug preview from name_en + profession + city
+  const slugPreview = (() => {
+    if (!form.name_en) return '';
+    const prof = professionSlugs[form.profession] || '';
+    const city = cityMap[form.city] || form.city?.toLowerCase().replace(/\s+/g, '-') || '';
+    return [form.name_en, prof, city].filter(Boolean).join('-');
+  })();
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -129,14 +165,14 @@ export default function RegisterTherapist() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.full_name || !form.profession || !form.license_number) {
-      toast.error(t.registerRequiredFields || "יש למלא שדות חובה");
+    if (!form.full_name || !form.profession || !form.license_number || !form.name_en) {
+      toast.error("יש למלא שדות חובה כולל שם באנגלית");
       return;
     }
     setLoading(true);
 
     try {
-      // --- תחילת הבדיקה: האם האימייל או הטלפון כבר קיימים במערכת? ---
+      // בדיקת אימייל/טלפון כפולים
       const checkConditions = [];
       if (form.email) checkConditions.push(`email.eq.${form.email}`);
       if (form.phone) checkConditions.push(`phone.eq.${form.phone}`);
@@ -160,28 +196,39 @@ export default function RegisterTherapist() {
           } else if (phoneExists) {
             toast.error("מספר הטלפון הזה כבר רשום במערכת.");
           }
-          
           setLoading(false);
-          return; // עוצרים את ההרשמה
+          return;
         }
       }
-      // --- סוף הבדיקה ---
-    const tempId = crypto.randomUUID();  
-    const therapistData = {
-  ...sanitizeFormData(form),
-  slug: generateTherapistSlug(form.full_name, form.profession, form.city), // ← ADD THIS
-  price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
-  years_experience: form.years_experience ? Number(form.years_experience) : undefined,
-  immediate_availability: immediateAvailability,
-  formats,
-  hmo_affiliation: hmos,
-  treatment_types: treatments,
-  specializations,
-  languages,
-  photo_url: photoUrl || undefined,
-  license_document_url: licenseDocUrl || undefined,
-  status: "pending",
-};
+
+      // בדיקת slug כפול
+      const { data: slugExists } = await supabase
+        .from('Therapist')
+        .select('id')
+        .eq('slug', slugPreview)
+        .maybeSingle();
+
+      if (slugExists) {
+        toast.error("שם זה באנגלית כבר תפוס, נסה להוסיף מספר או שם אמצעי (לדוגמה: moshe-levi-2)");
+        setLoading(false);
+        return;
+      }
+
+      const therapistData = {
+        ...sanitizeFormData(form),
+        slug: slugPreview,
+        price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
+        years_experience: form.years_experience ? Number(form.years_experience) : undefined,
+        immediate_availability: immediateAvailability,
+        formats,
+        hmo_affiliation: hmos,
+        treatment_types: treatments,
+        specializations,
+        languages,
+        photo_url: photoUrl || undefined,
+        license_document_url: licenseDocUrl || undefined,
+        status: "pending",
+      };
 
       const { error } = await supabase.from("Therapist").insert(therapistData);
       if (error) throw error;
@@ -272,6 +319,29 @@ export default function RegisterTherapist() {
           </div>
         </div>
 
+        {/* English name field for SEO slug */}
+        <div className="space-y-1">
+          <Label className="text-xs">שם באנגלית (לכתובת הפרופיל) *</Label>
+          <Input
+            value={form.name_en}
+            onChange={e => setForm({...form, name_en: e.target.value
+              .toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, '')
+              .replace(/\s+/g, '-')
+            })}
+            placeholder="moshe-levi"
+            dir="ltr"
+          />
+          <p className="text-xs text-muted-foreground">
+            רק אותיות אנגליות ומקפים · ישמש כתובת הפרופיל שלך
+          </p>
+          {slugPreview && (
+            <p className="text-xs text-primary font-mono bg-primary/5 px-2 py-1 rounded-lg">
+              🔗 itai-web-project.vercel.app/therapist/{slugPreview}
+            </p>
+          )}
+        </div>
+
         <div className="space-y-1">
           <Label className="text-xs">{t.registerProfession || "מקצוע"} *</Label>
           <Select onValueChange={v => setForm({...form, profession: v})}>
@@ -287,7 +357,6 @@ export default function RegisterTherapist() {
           <Textarea value={form.about} onChange={e => setForm({...form, about: e.target.value})} placeholder={t.registerAboutPlaceholder || "ספר/י על גישת הטיפול שלך, ניסיונך והתמחויותיך..."} rows={4} />
         </div>
 
-        {/* סידור הגריד מחדש כדי שיהיה סימטרי ויפה */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label className="text-xs">{t.registerCity || "עיר"}</Label>
@@ -307,12 +376,11 @@ export default function RegisterTherapist() {
           </div>
         </div>
 
-        {/* אפשרויות הטיפול והשפות */}
         {checkboxGroup(t.registerFormat || "פורמט טיפול", formatOptions, formats, setFormats)}
         {checkboxGroup(t.registerHmo || "קופות חולים וחברות ביטוח", hmoOptions, hmos, setHmos)}
 
         <GroupedCheckboxSelect
-          label={t.registerTreatmentMethods || "שיטות טיפול" }
+          label={t.registerTreatmentMethods || "שיטות טיפול"}
           groups={TREATMENT_METHOD_GROUPS}
           selected={treatments}
           onChange={setTreatments}
@@ -327,7 +395,6 @@ export default function RegisterTherapist() {
 
         {checkboxGroup(t.registerLanguages || "שפות טיפול", languageOptions, languages, setLanguages)}
 
-        {/* אזור העלאת הרישיון */}
         <div className="border border-dashed border-border rounded-xl p-4 space-y-2">
           <Label className="text-sm font-medium flex items-center gap-1.5">
             <FileText className="w-4 h-4" /> {t.registerLicenseDoc || "העלאת מסמך רישיון מקצועי (מומלץ)"}
@@ -345,14 +412,11 @@ export default function RegisterTherapist() {
           </label>
         </div>
 
-        {/* מתג הזמינות המיידית - מעוצב ומתוקן ל-RTL */}
         <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-5 mt-8">
           <div className="space-y-1 pl-4">
             <Label className="text-base font-bold text-primary block">{t.registerImmediateAvailabilityTitle || "זמינות לקבלת מטופלים"}</Label>
             <p className="text-sm text-muted-foreground">{t.registerImmediateAvailabilityDesc || "האם יש לך פניות לקבל מטופלים חדשים באופן מיידי?"}</p>
           </div>
-          
-          {/* הוספנו dir="ltr" כדי לתקן את הבאג של העיגול שבורח בעברית */}
           <div dir="ltr" className="flex-shrink-0 scale-110">
             <Switch 
               checked={immediateAvailability} 
@@ -361,7 +425,6 @@ export default function RegisterTherapist() {
           </div>
         </div>
 
-        {/* כפתור שליחה */}
         <Button type="submit" disabled={loading} className="w-full font-bold mt-4">
           {loading ? (t.registerUploading || "שולח...") : t.registerSubmit}
         </Button>
