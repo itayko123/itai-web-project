@@ -309,8 +309,10 @@ function ContactForm({ therapist }) {
 
 export default function TherapistProfile() {
   const { slug } = useParams();
+  const navigate = useNavigate(); // ← ADD THIS
 
-const { data: therapist } = useQuery({
+
+const { data: therapist, isLoading } = useQuery({
   queryKey: ['therapist', slug],
   queryFn: async () => {
     const { data, error } = await supabase
