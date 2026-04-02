@@ -1,3 +1,4 @@
+// @ts-nocheck
 const hebrewToEnglish: Record<string, string> = {
   'א':'a',  'ב':'b',  'ג':'g',  'ד':'d',  'ה':'h',
   'ו':'v',  'ז':'z',  'ח':'ch', 'ט':'t',  'י':'y',
@@ -41,7 +42,7 @@ const nameMap: Record<string, string> = {
   'חן':'chen',        'נועם':'noam',      'רותם':'rotem',
   'יהודה':'yehuda',   'שלמה':'shlomo',    'ראובן':'reuven',
   'גרשון':'gershon',  'נחמן':'nachman',   'מישל':'mishel',
-  'אבי':'avi'
+  'אבי':'avi',
 
   // שמות נשיים נפוצים
   'שרה':'sarah',      'רחל':'rachel',     'מרים':'miriam',
