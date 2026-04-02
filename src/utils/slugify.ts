@@ -190,7 +190,7 @@ const cityMap : Record<string, string> =  {
   'אופקים':'ofakim',              'ערד':'arad',
 
   // ערים בדרום
-  'אשקלון':'ashkelon',            'קריית גת':'kiryat-gat',
+  'קריית גת':'kiryat-gat',
   'אילת':'eilat',                 'דימונה':'dimona',
   'מצפה רמון':'mitzpe-ramon',     'ירוחם':'yeruham',
   'ניצן':'nitzan',                'קריית מלאכי':'kiryat-malachi',
