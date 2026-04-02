@@ -308,18 +308,21 @@ function ContactForm({ therapist }) {
 }
 
 export default function TherapistProfile() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const { slug } = useParams();
 
-  const { data: therapist, isLoading } = useQuery({
-    queryKey: ["therapist", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("Therapist").select("*").eq("id", id).limit(1);
-      if (error) throw error;
-      return data?.[0] ?? null;
-    },
-  });
+const { data: therapist } = useQuery({
+  queryKey: ['therapist', slug],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('Therapist')
+      .select('*')
+      .eq('slug', slug)   // ← new
+      .single();
+    if (error) throw error;
+    return data;
+  },
+});
+
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-[50vh]">

@@ -20,7 +20,7 @@ export default function TherapistCard({ therapist, priority = false }) {
   const stars = Math.round(therapist.average_rating || 0);
 
   return (
-    <Link to={`/therapist/${therapist.id}`} className="block group" aria-label={`פרופיל של ${therapist.full_name}`}>
+    <Link to={`/therapist/${therapist.slug}`} className="block group" aria-label={`פרופיל של ${therapist.full_name}`}>
       <article className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/30 hover:-translate-y-1 transition-all duration-300">
         <div className="flex gap-4 p-5">
           {/* Photo */}

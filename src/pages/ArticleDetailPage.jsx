@@ -158,7 +158,7 @@ export default function ArticleDetailPage() {
               )}
             </div>
             {therapist && (
-              <Link to={`/therapist/${therapist.id}`} className="flex-shrink-0 text-xs text-primary hover:underline font-medium flex items-center gap-1">
+              <Link to={`/therapist/${therapist.slug}`} className="flex-shrink-0 text-xs text-primary hover:underline font-medium flex items-center gap-1">
                 {t.viewProfile} <ExternalLink className="w-3 h-3" />
               </Link>
             )}

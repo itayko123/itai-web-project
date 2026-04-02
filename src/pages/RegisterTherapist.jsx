@@ -15,6 +15,7 @@ import GroupedCheckboxSelect from "@/components/therapist/GroupedCheckboxSelect"
 import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { useLanguage } from "@/lib/LanguageContext";
 import { sanitizeFormData } from "@/utils/sanitize";
+import { generateTherapistSlug } from '@/utils/slugify';
 
 const checkboxGroup = (label, items, selected, setSelected) => (
   <div className="space-y-1">
@@ -167,19 +168,20 @@ export default function RegisterTherapist() {
       // --- סוף הבדיקה ---
       
       const therapistData = {
-        ...sanitizeFormData(form),
-        price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
-        years_experience: form.years_experience ? Number(form.years_experience) : undefined,
-        immediate_availability: immediateAvailability,
-        formats,
-        hmo_affiliation: hmos,
-        treatment_types: treatments,
-        specializations,
-        languages,
-        photo_url: photoUrl || undefined,
-        license_document_url: licenseDocUrl || undefined,
-        status: "pending",
-      };
+  ...sanitizeFormData(form),
+  slug: generateTherapistSlug(form.full_name, form.profession, form.city), // ← ADD THIS
+  price_per_session: form.price_per_session ? Number(form.price_per_session) : undefined,
+  years_experience: form.years_experience ? Number(form.years_experience) : undefined,
+  immediate_availability: immediateAvailability,
+  formats,
+  hmo_affiliation: hmos,
+  treatment_types: treatments,
+  specializations,
+  languages,
+  photo_url: photoUrl || undefined,
+  license_document_url: licenseDocUrl || undefined,
+  status: "pending",
+};
 
       const { error } = await supabase.from("Therapist").insert(therapistData);
       if (error) throw error;

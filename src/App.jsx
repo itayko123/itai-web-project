@@ -34,6 +34,7 @@ const SupportDeclarationPage = lazy(() => import('./pages/SupportDeclarationPage
 const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage')); 
 const ArticleDetailPage = lazy(() => import('./pages/ArticleDetailPage'));
 const CookiePolicyPage = lazy(() => import('./pages/CookiePolicyPage'));
+const TherapistRedirect = lazy(() => import('./pages/TherapistRedirect'));
 
 // Loader פשוט ויפה שיוצג בזמן שקוד העמוד יורד
 const PageLoader = () => (
@@ -92,7 +93,8 @@ const AuthenticatedApp = () => {
           <Route path="/therapists" element={<TherapistSearch />} />
           
           {/* הוספנו את :name? כדי לתמוך בכתובות SEO דינמיות */}
-          <Route path="/therapist/:id/:name?" element={<TherapistProfile />} />
+          <Route path="/therapist/:slug" element={<TherapistProfile />} />
+          <Route path="/therapist-id/:id" element={<TherapistRedirect />} />
           
           <Route path="/quiz" element={<MatchQuizPage />} />
           <Route path="/register-therapist" element={<RegisterTherapist />} />

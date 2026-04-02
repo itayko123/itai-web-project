@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import PortalArticles from "@/components/therapist/PortalArticles";
 import GroupedCheckboxSelect from "@/components/therapist/GroupedCheckboxSelect";
 import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
+import { generateTherapistSlug } from '@/utils/slugify';
 
 // אפשרויות לבחירה מהירה - ניתן להתאים לפי הצורך
 const FORMAT_OPTIONS = [
@@ -218,18 +219,19 @@ export default function TherapistPortal() {
     setEditMode(true);
   };
 
-  const handleSave = () => {
-    updateMutation.mutate({
-      ...editData,
-      price_per_session: editData.price_per_session ? Number(editData.price_per_session) : undefined,
-      years_experience: editData.years_experience ? Number(editData.years_experience) : undefined,
-      formats: editFormats,
-      hmo_affiliation: editHmos,
-      treatment_types: editTreatments,
-      specializations: editSpecs,
-      languages: editLanguages,
-    });
-  };
+const handleSave = () => {
+  updateMutation.mutate({
+    ...editData,
+    slug: generateTherapistSlug(editData.full_name, therapist.profession, editData.city), // ← ADD THIS
+    price_per_session: editData.price_per_session ? Number(editData.price_per_session) : undefined,
+    years_experience: editData.years_experience ? Number(editData.years_experience) : undefined,
+    formats: editFormats,
+    hmo_affiliation: editHmos,
+    treatment_types: editTreatments,
+    specializations: editSpecs,
+    languages: editLanguages,
+  });
+};
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
