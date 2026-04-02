@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,25 @@ import { toast } from "sonner";
 const profLabels = { psychologist: "פסיכולוג/ית", psychiatrist: "פסיכיאטר/ית", psychotherapist: "פסיכותרפיסט/ית", social_worker: 'עו"ס קליני', counselor: "יועץ/ת" };
 const statusColors = { approved: "default", pending: "secondary", rejected: "destructive" };
 const statusLabels = { approved: "פעיל", pending: "ממתין", rejected: "נדחה" };
+
+const professionSlugs = {
+  psychologist: 'psychologist', psychiatrist: 'psychiatrist',
+  psychotherapist: 'psychotherapist', social_worker: 'social-worker', counselor: 'counselor',
+};
+
+const cityMap = {
+  'תל אביב':'tel-aviv','ירושלים':'jerusalem','חיפה':'haifa',
+  'ראשון לציון':'rishon-lezion','פתח תקווה':'petah-tikva','אשדוד':'ashdod',
+  'נתניה':'netanya','באר שבע':'beer-sheva','הרצליה':'herzliya',
+  'רמת גן':'ramat-gan','רעננה':'raanana','כפר סבא':'kfar-saba',
+  'הוד השרון':'hod-hasharon','מודיעין':'modiin','בני ברק':'bnei-brak',
+  'חולון':'holon','בת ים':'bat-yam','רחובות':'rehovot','נס ציונה':'nes-ziona',
+  'גבעתיים':'givatayim','לוד':'lod','רמלה':'ramla','נהריה':'nahariya',
+  'עכו':'acre','כרמיאל':'karmiel','נצרת':'nazareth','טבריה':'tiberias',
+  'צפת':'safed','חדרה':'hadera','ראש העין':'rosh-haayin','אילת':'eilat',
+  'דימונה':'dimona','קריית גת':'kiryat-gat','בית שמש':'beit-shemesh',
+  'מעלה אדומים':'maale-adumim','מבשרת ציון':'mevasseret-zion',
+};
 
 export default function TherapistManagement({ onImageClick }) {
   const qc = useQueryClient();
@@ -102,14 +121,11 @@ export default function TherapistManagement({ onImageClick }) {
             <div className="grid grid-cols-12 gap-2 px-4 py-3 items-center">
               <div className="col-span-3 flex items-center gap-2 min-w-0">
                 {t.photo_url
-                  ? <img 
-                      src={t.photo_url} 
-                      alt={t.full_name} 
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all" 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        if(onImageClick) onImageClick(t.photo_url); 
-                      }}
+                  ? <img
+                      src={t.photo_url}
+                      alt={t.full_name}
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-primary/50 transition-all"
+                      onClick={(e) => { e.stopPropagation(); if(onImageClick) onImageClick(t.photo_url); }}
                     />
                   : <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">{t.full_name?.charAt(0)}</div>
                 }
@@ -119,6 +135,9 @@ export default function TherapistManagement({ onImageClick }) {
                     {t.license_verified && <BadgeCheck className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">{t.email}</div>
+                  {t.slug && (
+                    <div className="text-xs font-mono text-muted-foreground/60 truncate">/{t.slug}</div>
+                  )}
                 </div>
               </div>
               <div className="col-span-2 text-xs text-muted-foreground">{profLabels[t.profession]}</div>
@@ -164,6 +183,7 @@ export default function TherapistManagement({ onImageClick }) {
                     {t.about && <div className="col-span-full"><span className="font-medium text-foreground">אודות: </span>{t.about}</div>}
                     <div><span className="font-medium text-foreground">רישיון: </span>{t.license_number}</div>
                     <div><span className="font-medium text-foreground">אימות: </span>{t.license_verified ? "מאומת ✓" : "לא מאומת"}</div>
+                    {t.slug && <div className="col-span-full"><span className="font-medium text-foreground">URL: </span><span className="font-mono">/therapist/{t.slug}</span></div>}
                     {t.formats?.length > 0 && <div><span className="font-medium text-foreground">פורמט: </span>{t.formats.join(", ")}</div>}
                     {t.hmo_affiliation?.length > 0 && <div><span className="font-medium text-foreground">קופות: </span>{t.hmo_affiliation.join(", ")}</div>}
                     {t.languages?.length > 0 && <div><span className="font-medium text-foreground">שפות: </span>{t.languages.join(", ")}</div>}
@@ -195,13 +215,50 @@ export default function TherapistManagement({ onImageClick }) {
 }
 
 function EditForm({ data, setData, onSave, onCancel, isSaving }) {
+  const [slugTaken, setSlugTaken] = useState(false);
   const set = (field, val) => setData(prev => ({ ...prev, [field]: val }));
+
+  const autoSlug = (() => {
+    const namePart = data.name_en?.trim() || '';
+    const prof = professionSlugs[data.profession] || '';
+    const city = cityMap[data.city?.trim()] || data.city?.toLowerCase().replace(/\s+/g, '-') || '';
+    return [namePart, prof, city].filter(Boolean).join('-')
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  })();
+
+  // Real-time duplicate slug check
+  useEffect(() => {
+    if (!data.slug) { setSlugTaken(false); return; }
+    const check = async () => {
+      const { data: existing } = await supabase
+        .from('Therapist')
+        .select('id')
+        .eq('slug', data.slug)
+        .neq('id', data.id)
+        .maybeSingle();
+      setSlugTaken(!!existing);
+    };
+    const timeout = setTimeout(check, 500);
+    return () => clearTimeout(timeout);
+  }, [data.slug, data.id]);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div><Label className="text-xs">שם מלא</Label><Input className="mt-1 h-8 text-sm" value={data.full_name || ""} onChange={e => set("full_name", e.target.value)} /></div>
-        <div><Label className="text-xs">עיר</Label><Input className="mt-1 h-8 text-sm" value={data.city || ""} onChange={e => set("city", e.target.value)} /></div>
+        <div><Label className="text-xs">עיר</Label><Input className="mt-1 h-8 text-sm" value={data.city || ""} onChange={e => {
+          set("city", e.target.value);
+          // auto-update slug city part when city changes
+          const namePart = data.name_en?.trim() || '';
+          const prof = professionSlugs[data.profession] || '';
+          const city = cityMap[e.target.value?.trim()] || e.target.value?.toLowerCase().replace(/\s+/g, '-') || '';
+          if (namePart) {
+            const newSlug = [namePart, prof, city].filter(Boolean).join('-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            set("slug", newSlug);
+          }
+        }} /></div>
         <div><Label className="text-xs">טלפון</Label><Input className="mt-1 h-8 text-sm" value={data.phone || ""} onChange={e => set("phone", e.target.value)} /></div>
         <div><Label className="text-xs">מחיר לפגישה (₪)</Label><Input type="number" className="mt-1 h-8 text-sm" value={data.price_per_session || ""} onChange={e => set("price_per_session", Number(e.target.value))} /></div>
         <div><Label className="text-xs">שנות ניסיון</Label><Input type="number" className="mt-1 h-8 text-sm" value={data.years_experience || ""} onChange={e => set("years_experience", Number(e.target.value))} /></div>
@@ -217,25 +274,70 @@ function EditForm({ data, setData, onSave, onCancel, isSaving }) {
           </Select>
         </div>
       </div>
-        <div className="col-span-2 md:col-span-3">
-    <Label className="text-xs">כתובת URL (slug)</Label>
-      <Input
-        className="mt-1 h-8 text-sm font-mono"
-        dir="ltr"
-        value={data.slug || ""}
-        onChange={e => set("slug", e.target.value
-          .toLowerCase()
-          .replace(/[^a-z0-9-]/g, '-')
-          .replace(/-+/g, '-')
-        )}
-        placeholder="moshe-levi-psychologist-tel-aviv"
-      />
-      {data.slug && (
-        <p className="text-xs text-muted-foreground mt-1 font-mono">
-          🔗 /therapist/{data.slug}
-        </p>
-      )}
-    </div>
+
+      {/* Slug Section */}
+      <div className="bg-muted/40 border border-border rounded-xl p-3 space-y-3">
+        <Label className="text-xs font-bold">כתובת URL של הפרופיל</Label>
+
+        <div>
+          <Label className="text-xs text-muted-foreground">שם באנגלית (בסיס ה-URL)</Label>
+          <Input
+            className="mt-1 h-8 text-sm font-mono"
+            dir="ltr"
+            value={data.name_en || ""}
+            onChange={e => {
+              const cleaned = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+              set("name_en", cleaned);
+              const prof = professionSlugs[data.profession] || '';
+              const city = cityMap[data.city?.trim()] || data.city?.toLowerCase().replace(/\s+/g, '-') || '';
+              const newSlug = [cleaned, prof, city].filter(Boolean).join('-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+              set("slug", newSlug);
+            }}
+            placeholder="moshe-levi"
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <Label className="text-xs text-muted-foreground">slug מלא (ניתן לעריכה ידנית)</Label>
+            <button
+              type="button"
+              onClick={() => set("slug", autoSlug)}
+              className="text-xs text-primary hover:underline"
+            >
+              ↺ חדש אוטומטית
+            </button>
+          </div>
+          <Input
+            className={`h-8 text-sm font-mono ${slugTaken ? 'border-destructive' : ''}`}
+            dir="ltr"
+            value={data.slug || ""}
+            onChange={e => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+            placeholder="moshe-levi-psychologist-tel-aviv"
+          />
+          {data.slug && !slugTaken && (
+            <p className="text-xs text-primary font-mono mt-1 bg-primary/5 px-2 py-1 rounded">
+              🔗 /therapist/{data.slug}
+            </p>
+          )}
+          {slugTaken && (
+            <p className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded mt-1 font-medium">
+              ⚠️ ה-slug הזה כבר תפוס! נסה אחד מהאפשרויות:<br/>
+              <span className="font-mono">{data.slug}-2</span> ·{' '}
+              <span className="font-mono">{data.slug}-children</span> ·{' '}
+              <span className="font-mono">{data.slug}-cbt</span>
+            </p>
+          )}
+        </div>
+
+        <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          💡 אם יש שני מטפלים עם אותו שם ועיר, הוסף מספר או התמחות:<br/>
+          <span className="font-mono">moshe-levi-psychologist-tel-aviv-2</span><br/>
+          <span className="font-mono">moshe-levi-children-psychologist-tel-aviv</span><br/>
+          <span className="font-mono">moshe-levi-cbt-psychologist-tel-aviv</span>
+        </div>
+      </div>
+
       <div>
         <Label className="text-xs">אודות</Label>
         <Textarea className="mt-1 text-sm" rows={3} value={data.about || ""} onChange={e => set("about", e.target.value)} />
@@ -247,7 +349,7 @@ function EditForm({ data, setData, onSave, onCancel, isSaving }) {
         <Label className="text-xs">זמין/ה לפגישה מיידית</Label>
       </div>
       <div className="flex gap-2">
-        <Button size="sm" onClick={onSave} disabled={isSaving} className="gap-1">
+        <Button size="sm" onClick={onSave} disabled={isSaving || slugTaken} className="gap-1">
           {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} שמור
         </Button>
         <Button size="sm" variant="outline" onClick={onCancel} className="gap-1"><X className="w-3.5 h-3.5" /> ביטול</Button>

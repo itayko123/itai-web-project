@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import imageCompression from 'browser-image-compression';
 import { supabase } from "@/lib/supabase";
 import { uploadTherapistFile } from "@/lib/storage";
@@ -60,9 +60,10 @@ export default function RegisterTherapist() {
   const [uploadingLicense, setUploadingLicense] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
   const [licenseDocUrl, setLicenseDocUrl] = useState("");
+  const [slugTaken, setSlugTaken] = useState(false); // ← NEW
   const [form, setForm] = useState({
     full_name: "",
-    name_en: "",       // ← NEW: English name for slug
+    name_en: "",
     profession: "",
     license_number: "",
     about: "",
@@ -127,22 +128,29 @@ export default function RegisterTherapist() {
     return [form.name_en, prof, city].filter(Boolean).join('-');
   })();
 
+  // ← NEW: Real-time duplicate slug check with 500ms debounce
+  useEffect(() => {
+    if (!slugPreview) { setSlugTaken(false); return; }
+    const check = async () => {
+      const { data: existing } = await supabase
+        .from('Therapist')
+        .select('id')
+        .eq('slug', slugPreview)
+        .maybeSingle();
+      setSlugTaken(!!existing);
+    };
+    const timeout = setTimeout(check, 500);
+    return () => clearTimeout(timeout);
+  }, [slugPreview]);
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingPhoto(true);
-    
     try {
-      const options = {
-        maxSizeMB: 0.1,
-        maxWidthOrHeight: 800,
-        useWebWorker: true,
-        fileType: 'image/webp'
-      };
-
+      const options = { maxSizeMB: 0.1, maxWidthOrHeight: 800, useWebWorker: true, fileType: 'image/webp' };
       const compressedFile = await imageCompression(file, options);
       const fileUrl = await uploadTherapistFile(compressedFile, "photos");
-      
       setPhotoUrl(fileUrl);
       toast.success(t.registerPhotoUploaded || "תמונה הועלתה בהצלחה");
     } catch (error) {
@@ -167,6 +175,10 @@ export default function RegisterTherapist() {
     e.preventDefault();
     if (!form.full_name || !form.profession || !form.license_number || !form.name_en) {
       toast.error("יש למלא שדות חובה כולל שם באנגלית");
+      return;
+    }
+    if (slugTaken) {
+      toast.error("השם באנגלית כבר תפוס, נסה להוסיף מספר (לדוגמה: moshe-levi-2)");
       return;
     }
     setLoading(true);
@@ -201,19 +213,6 @@ export default function RegisterTherapist() {
         }
       }
 
-      // בדיקת slug כפול
-      const { data: slugExists } = await supabase
-        .from('Therapist')
-        .select('id')
-        .eq('slug', slugPreview)
-        .maybeSingle();
-
-      if (slugExists) {
-        toast.error("שם זה באנגלית כבר תפוס, נסה להוסיף מספר או שם אמצעי (לדוגמה: moshe-levi-2)");
-        setLoading(false);
-        return;
-      }
-
       const therapistData = {
         ...sanitizeFormData(form),
         slug: slugPreview,
@@ -239,20 +238,11 @@ export default function RegisterTherapist() {
         const response = await fetch('/api/notify-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: form.full_name,
-            email: form.email,
-            phone: form.phone,
-            profession: professionLabel
-          }),
+          body: JSON.stringify({ name: form.full_name, email: form.email, phone: form.phone, profession: professionLabel }),
         });
-
         const result = await response.json();
-        if (!response.ok) {
-          console.error("שגיאה מהשרת של Resend:", result.error);
-        } else {
-          console.log("המייל נשלח! מזהה הודעה:", result.id);
-        }
+        if (!response.ok) console.error("שגיאה מהשרת של Resend:", result.error);
+        else console.log("המייל נשלח! מזהה הודעה:", result.id);
       } catch (emailError) {
         console.error("בעיית רשת או כתובת לא נמצאה:", emailError);
       }
@@ -331,13 +321,20 @@ export default function RegisterTherapist() {
             })}
             placeholder="moshe-levi"
             dir="ltr"
+            className={slugTaken ? 'border-destructive focus-visible:ring-destructive' : ''}
           />
           <p className="text-xs text-muted-foreground">
             רק אותיות אנגליות ומקפים · ישמש כתובת הפרופיל שלך
           </p>
-          {slugPreview && (
+          {slugPreview && !slugTaken && (
             <p className="text-xs text-primary font-mono bg-primary/5 px-2 py-1 rounded-lg">
               🔗 itai-web-project.vercel.app/therapist/{slugPreview}
+            </p>
+          )}
+          {slugTaken && (
+            <p className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-lg font-medium">
+              ⚠️ השם הזה כבר תפוס! נסה להוסיף מספר לדוגמה:
+              <span className="font-mono"> {form.name_en}-2</span>
             </p>
           )}
         </div>
@@ -418,14 +415,11 @@ export default function RegisterTherapist() {
             <p className="text-sm text-muted-foreground">{t.registerImmediateAvailabilityDesc || "האם יש לך פניות לקבל מטופלים חדשים באופן מיידי?"}</p>
           </div>
           <div dir="ltr" className="flex-shrink-0 scale-110">
-            <Switch 
-              checked={immediateAvailability} 
-              onCheckedChange={setImmediateAvailability} 
-            />
+            <Switch checked={immediateAvailability} onCheckedChange={setImmediateAvailability} />
           </div>
         </div>
 
-        <Button type="submit" disabled={loading} className="w-full font-bold mt-4">
+        <Button type="submit" disabled={loading || slugTaken} className="w-full font-bold mt-4">
           {loading ? (t.registerUploading || "שולח...") : t.registerSubmit}
         </Button>
 
