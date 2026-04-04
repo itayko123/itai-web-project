@@ -19,6 +19,7 @@ const categoryLabelsHe = {
 
 export default function ArticlesSection() {
   const { t } = useLanguage();
+  
   const { data: articles = [] } = useQuery({
     queryKey: ["home-articles"],
     queryFn: async () => {
@@ -33,44 +34,51 @@ export default function ArticlesSection() {
     },
   });
 
-  // הבטחה שתמיד יש מערך לפני שעושים פעולות
-  const safeArticles = articles || [];
-
-  if (safeArticles.length === 0) return null;
-const slug = article.title ? article.title.replace(/\s+/g, '-').replace(/[^\w\u0590-\u05FF-]/g, '') : '';
   return (
-    <section className="py-16 px-4 bg-background">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <section className="py-16 bg-muted/30">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex justify-between items-end mb-8">
           <div>
-            <h2 className="text-2xl md:text-3xl font-black">{t.articlesSectionTitle || "מאמרים מקצועיים"}</h2>
-            <p className="text-muted-foreground text-sm mt-1">{t.articlesSectionSubtitle || "ידע ותובנות מאת מטפלים מוסמכים"}</p>
+            <h2 className="text-2xl md:text-3xl font-black mb-2">מאמרים אחרונים</h2>
+            <p className="text-muted-foreground text-sm md:text-base">קראו מאמרים מקצועיים שנכתבו על ידי המטפלים שלנו</p>
           </div>
-          <Link to="/articles" className="flex items-center gap-1 text-sm text-primary hover:underline font-medium">
-            {t.articlesSectionViewAll || "לכל המאמרים"} <ArrowLeft className="w-3.5 h-3.5" />
+          <Link to="/articles" className="hidden md:flex items-center gap-1 text-primary hover:underline font-medium">
+            לכל המאמרים <ArrowLeft className="w-4 h-4 ml-1" />
           </Link>
         </div>
-        <div className="grid md:grid-cols-3 gap-5">
-          {safeArticles?.map(article => (
-            <Link to={`/articles/${article.id}/${slug}`} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 block">
-              {article.cover_image_url && (
-                <div className="h-40 overflow-hidden">
-                  <img src={article.cover_image_url} alt={article.title} className="w-full h-full object-cover" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {articles.map(article => {
+            // הנה התיקון! השורה הזו עכשיו נמצאת *בתוך* הלולאה, ולכן article קיים פה:
+            const slug = article.title ? article.title.replace(/\s+/g, '-').replace(/[^\w\u0590-\u05FF-]/g, '') : '';
+            
+            return (
+              <Link key={article.id} to={`/articles/${article.id}/${slug}`} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 block">
+                {article.cover_image_url && (
+                  <div className="h-40 overflow-hidden">
+                    <img src={article.cover_image_url} alt={article.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="p-4">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block mb-2 ${categoryColors[article.category] || categoryColors.general}`}>
+                    {categoryLabelsHe[article.category] || "כללי"}
+                  </span>
+                  <h3 className="font-bold text-sm mb-1 line-clamp-2">{article.title}</h3>
+                  {article.excerpt && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{article.excerpt}</p>}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {article.therapist_name && <span className="flex items-center gap-1"><User className="w-3 h-3" />{article.therapist_name}</span>}
+                    {article.read_time_minutes && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{article.read_time_minutes} {t.articlesReadTime || "דק' קריאה"}</span>}
+                  </div>
                 </div>
-              )}
-              <div className="p-4">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block mb-2 ${categoryColors[article.category] || categoryColors.general}`}>
-                  {categoryLabelsHe[article.category] || "כללי"}
-                </span>
-                <h3 className="font-bold text-sm mb-1 line-clamp-2">{article.title}</h3>
-                {article.excerpt && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{article.excerpt}</p>}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  {article.therapist_name && <span className="flex items-center gap-1"><User className="w-3 h-3" />{article.therapist_name}</span>}
-                  {article.read_time_minutes && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{article.read_time_minutes} {t.articlesReadTime}</span>}
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
+        </div>
+        
+        <div className="mt-8 text-center md:hidden">
+          <Link to="/articles" className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
+             לכל המאמרים <ArrowLeft className="w-4 h-4 ml-1" />
+          </Link>
         </div>
       </div>
     </section>
