@@ -90,7 +90,7 @@ const AuthenticatedApp = () => {
         <Route element={<AppLayout />}>
           {/* --- נתיבים ציבוריים (זמינים לכולם) --- */}
           <Route path="/" element={<Home />} />
-          <Route path="/therapists" element={<TherapistSearch />} />
+          <Route path="/therapists/:citySlug?" element={<TherapistSearch />} />
           
           {/* הוספנו את :name? כדי לתמוך בכתובות SEO דינמיות */}
           <Route path="/therapist/:slug" element={<TherapistProfile />} />
