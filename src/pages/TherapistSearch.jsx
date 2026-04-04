@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { useState, useMemo } from "react";
-import { useParams } from "react-router-dom"; // נוסף כדי לקרוא את הכתובת
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import TherapistCard from "@/components/therapist/TherapistCard";
@@ -14,41 +14,82 @@ import { Helmet } from "react-helmet-async";
 const defaultFilters = { profession: "all", city: "all", format: "all", hmo: "all", gender: "all", maxPrice: 800, immediate: false, specialization: "all", treatment_method: "all", language: "all" };
 const PAGE_SIZE = 12;
 
-// מילון תרגום מאנגלית לעברית (כדי שנדע לסנן את תל אביב אם כתוב tel-aviv)
-const citySlugToHebrew = {
-  'tel-aviv': 'תל אביב', 'jerusalem': 'ירושלים', 'haifa': 'חיפה', 
-  'rishon-lezion': 'ראשון לציון', 'petah-tikva': 'פתח תקווה', 'ashdod': 'אשדוד', 
-  'netanya': 'נתניה', 'beer-sheva': 'באר שבע', 'holon': 'חולון', 
-  'bnei-brak': 'בני ברק', 'ramat-gan': 'רמת גן', 'rehovot': 'רחובות', 
-  'bat-yam': 'בת ים', 'ashkelon': 'אשקלון', 'kfar-saba': 'כפר סבא', 
-  'herzliya': 'הרצליה', 'hadera': 'חדרה', 'modiin': 'מודיעין', 
-  'raanana': 'רעננה', 'hod-hasharon': 'הוד השרון'
+// --- מילוני ה-SEO שלנו: מזהים מילים באנגלית מהכתובת ומתרגמים לערכים במסד הנתונים ---
+const seoDictionaries = {
+  city: {
+    'tel-aviv': 'תל אביב', 'jerusalem': 'ירושלים', 'haifa': 'חיפה', 
+    'rishon-lezion': 'ראשון לציון', 'petah-tikva': 'פתח תקווה', 'ashdod': 'אשדוד', 
+    'netanya': 'נתניה', 'beer-sheva': 'באר שבע', 'holon': 'חולון', 
+    'bnei-brak': 'בני ברק', 'ramat-gan': 'רמת גן', 'rehovot': 'רחובות', 
+    'bat-yam': 'בת ים', 'ashkelon': 'אשקלון', 'kfar-saba': 'כפר סבא', 
+    'herzliya': 'הרצליה', 'hadera': 'חדרה', 'modiin': 'מודיעין', 
+    'raanana': 'רעננה', 'hod-hasharon': 'הוד השרון'
+  },
+  profession: {
+    'psychologist': 'psychologist',
+    'psychiatrist': 'psychiatrist', 
+    'psychotherapist': 'psychotherapist', 
+    'social-worker': 'social_worker', 
+    'counselor': 'counselor'
+  },
+  treatment_method: {
+    'cbt': 'CBT', 'emdr': 'EMDR', 'dynamic': 'טיפול דינמי', 
+    'nlp': 'NLP', 'mindfulness': 'מיינדפולנס'
+  },
+  language: {
+    'english': 'english', 'russian': 'russian', 'french': 'french', 
+    'arabic': 'arabic', 'spanish': 'spanish'
+  }
+};
+
+// פונקציה חכמה שמבינה איזה סוג פילטר מופיע בכתובת
+const parseSlug = (slug) => {
+  if (!slug) return null;
+  for (const [type, dictionary] of Object.entries(seoDictionaries)) {
+    if (dictionary[slug]) {
+      return { type, value: dictionary[slug] };
+    }
+  }
+  return null;
 };
 
 export default function TherapistSearch() {
-  const { citySlug } = useParams(); // מזהה את העיר מהכתובת!
-  const urlParams = new URLSearchParams(window.location.search);
-  
-  // אם יש עיר בכתובת (SEO), נשתמש בה. אם לא - נבדוק את חיפוש ה-URL, ואם לא נשים 'all'
-  const initialCity = citySlug && citySlugToHebrew[citySlug] 
-    ? citySlugToHebrew[citySlug] 
-    : urlParams.get("city") || "all";
+  const { filter1, filter2 } = useParams(); // לוקח את המילים מה-URL
+  const [searchParams] = useSearchParams();
 
-  const [filters, setFilters] = useState({
-    ...defaultFilters,
-    profession: urlParams.get("profession") || "all",
-    city: initialCity,
-    specialization: urlParams.get("specialization") || "all",
-    language: urlParams.get("language") || "all",
-    gender: urlParams.get("gender") || "all",
-    hmo: urlParams.get("hmo") || "all",
-    format: urlParams.get("format") || "all",
-    treatment_method: urlParams.get("treatment_method") || "all",
-    immediate: urlParams.get("immediate") === "true",
-  });
+  // פענוח הכתובת ויצירת המסננים ההתחלתיים
+  const initialFilters = useMemo(() => {
+    let baseFilters = { ...defaultFilters };
+    
+    // קריאת כתובות (SEO URLs) כמו /therapists/psychologist/tel-aviv
+    [filter1, filter2].forEach(slug => {
+      const parsed = parseSlug(slug);
+      if (parsed) baseFilters[parsed.type] = parsed.value;
+    });
 
-  const [nameSearch, setNameSearch] = useState(urlParams.get("name") || "");
+    // דריסה על ידי Query Params (חיפוש רגיל) אם ישנם
+    baseFilters.profession = searchParams.get("profession") || baseFilters.profession;
+    baseFilters.city = searchParams.get("city") || baseFilters.city;
+    baseFilters.specialization = searchParams.get("specialization") || baseFilters.specialization;
+    baseFilters.language = searchParams.get("language") || baseFilters.language;
+    baseFilters.gender = searchParams.get("gender") || baseFilters.gender;
+    baseFilters.hmo = searchParams.get("hmo") || baseFilters.hmo;
+    baseFilters.format = searchParams.get("format") || baseFilters.format;
+    baseFilters.treatment_method = searchParams.get("treatment_method") || baseFilters.treatment_method;
+    baseFilters.immediate = searchParams.get("immediate") === "true" ? true : baseFilters.immediate;
+
+    return baseFilters;
+  }, [filter1, filter2, searchParams]);
+
+  const [filters, setFilters] = useState(initialFilters);
+  const [nameSearch, setNameSearch] = useState(searchParams.get("name") || "");
   const [page, setPage] = useState(1);
+
+  // סנכרון במקרה של מעבר בין דפי SEO (למשל מתל אביב לחיפה דרך התפריט)
+  useEffect(() => {
+    setFilters(initialFilters);
+    setPage(1);
+  }, [initialFilters]);
 
   const { data: therapists = [], isLoading } = useQuery({
     queryKey: ["therapists"],
@@ -76,7 +117,6 @@ export default function TherapistSearch() {
       const q = nameSearch.trim().toLowerCase();
       if (!(t.full_name || "").toLowerCase().includes(q)) return false;
     }
-    
     return true;
   }), [therapists, filters, nameSearch]);
 
@@ -88,16 +128,18 @@ export default function TherapistSearch() {
     setPage(1);
   };
 
-  // --- הכנת נתוני SEO חכמים לפי העיר והמקצוע ---
-  const seoProfessionLabels = {
-    all: "מטפלים ופסיכולוגים", psychologist: "פסיכולוגים", psychiatrist: "פסיכיאטרים",
-    psychotherapist: "פסיכותרפיסטים", social_worker: 'עובדים סוציאליים', counselor: "יועצים"
-  };
+  // --- יצירת משפטים דינמיים לכותרות ה-SEO (גאונות פרוגרמטית) ---
+  const profLabels = { all: "מטפלים", psychologist: "פסיכולוגים", psychiatrist: "פסיכיאטרים", psychotherapist: "פסיכותרפיסטים", social_worker: 'עובדים סוציאליים', counselor: "יועצים" };
+  const treatLabels = { 'CBT': 'בגישת CBT', 'EMDR': 'בגישת EMDR', 'טיפול דינמי': 'בגישה דינמית', 'NLP': 'בגישת NLP', 'מיינדפולנס': 'בגישת מיינדפולנס' };
+  const langLabels = { english: 'דוברי אנגלית', russian: 'דוברי רוסית', french: 'דוברי צרפתית', arabic: 'דוברי ערבית', spanish: 'דוברי ספרדית' };
 
-  const currentProfession = seoProfessionLabels[filters.profession] || "מטפלים";
-  const currentCityText = filters.city !== "all" ? ` ב${filters.city}` : "";
-  const seoTitle = `${currentProfession}${currentCityText} מומלצים | מצא לי מטפל`;
-  const seoDescription = `מחפשים ${currentProfession}${currentCityText}? היכנסו למאגר המקיף של מצא לי מטפל, סננו לפי מחיר, סוג טיפול וזמינות, וצרו קשר ישירות ללא עמלות.`;
+  let dynamicH1 = profLabels[filters.profession] || "מטפלים ופסיכולוגים";
+  if (filters.treatment_method !== "all" && treatLabels[filters.treatment_method]) dynamicH1 += " " + treatLabels[filters.treatment_method];
+  if (filters.language !== "all" && langLabels[filters.language]) dynamicH1 += " " + langLabels[filters.language];
+  if (filters.city !== "all") dynamicH1 += " ב" + filters.city;
+
+  const seoTitle = `${dynamicH1} מומלצים | מצא לי מטפל`;
+  const seoDescription = `מחפשים ${dynamicH1}? היכנסו למאגר המקיף של מצא לי מטפל, סננו לפי מחיר, סוג טיפול וזמינות, וצרו קשר ישירות ללא עמלות.`;
 
   return (
     <>
@@ -111,9 +153,8 @@ export default function TherapistSearch() {
       <div className="max-w-6xl mx-auto px-4 py-8" dir="rtl">
         <div className="mb-6">
           <div className="flex items-center gap-3 flex-wrap">
-            {/* כותרת H1 משתנה אוטומטית! */}
             <h1 className="text-2xl md:text-3xl font-black text-foreground">
-              {currentProfession}{currentCityText}
+              {dynamicH1}
             </h1>
             <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">✅ חינמי למטופלים</span>
           </div>
