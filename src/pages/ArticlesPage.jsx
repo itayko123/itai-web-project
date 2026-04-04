@@ -1,8 +1,7 @@
 // @ts-nocheck
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Clock, BookOpen, Loader2, Search, ChevronLeft, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,7 @@ const categoryColors = {
 const CATEGORIES = ["all", "anxiety", "depression", "relationships", "parenting", "trauma", "mindfulness", "general"];
 
 const categoryMeta = {
-  all:          { title: "מאמרים בנושאי בריאות נפש | מצא לי מטפל",                   description: "מאמרים מקצועיים בנושאי פסיכולוגיה, חרדה, דיכאון, זוגיות וטיפול נפשי — נכתבו על ידי מטפלים מוסמכים." },
+  all:          { title: "מאמרים בנושאי בריאות נפש | מצא לי מטפל",                  description: "מאמרים מקצועיים בנושאי פסיכולוגיה, חרדה, דיכאון, זוגיות וטיפול נפשי — נכתבו על ידי מטפלים מוסמכים." },
   anxiety:      { title: "מאמרים על חרדה | מצא לי מטפל",                              description: "מאמרים מקצועיים על חרדה, התקפי פאניקה ו-OCD. נכתבו על ידי פסיכולוגים מוסמכים." },
   depression:   { title: "מאמרים על דיכאון | מצא לי מטפל",                            description: "מאמרים מקצועיים על דיכאון, עצב ואובדן מוטיבציה. מידע מהמומחים." },
   relationships:{ title: "מאמרים על זוגיות ומערכות יחסים | מצא לי מטפל",             description: "מאמרים על זוגיות, קשרים בינאישיים, גירושין ותקשורת בריאה." },
@@ -44,8 +43,32 @@ function articleUrl(article) {
 
 export default function ArticlesPage() {
   const { t } = useLanguage();
-  const [selectedCat, setSelectedCat] = useState("all");
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // קוראים את המצב מה-URL (או שמים ברירת מחדל)
+  const selectedCat = searchParams.get("category") || "all";
+  const search = searchParams.get("q") || "";
+
+  // פונקציות חכמות לעדכון ה-URL בלי למחוק פרמטרים אחרים
+  const handleCategoryChange = (category) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (category === "all") {
+      newParams.delete("category");
+    } else {
+      newParams.set("category", category);
+    }
+    setSearchParams(newParams);
+  };
+
+  const handleSearchChange = (value) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (!value) {
+      newParams.delete("q");
+    } else {
+      newParams.set("q", value);
+    }
+    setSearchParams(newParams);
+  };
 
   const { data: articles = [], isLoading } = useQuery({
     queryKey: ["published-articles"],
@@ -104,7 +127,12 @@ export default function ArticlesPage() {
             </p>
             <div className="relative max-w-md mx-auto">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={t.articlesSearch} className="pr-10 h-11 rounded-xl bg-white" />
+              <Input 
+                value={search} 
+                onChange={e => handleSearchChange(e.target.value)} 
+                placeholder={t.articlesSearch} 
+                className="pr-10 h-11 rounded-xl bg-white" 
+              />
             </div>
           </div>
         </section>
@@ -113,7 +141,7 @@ export default function ArticlesPage() {
         <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-border">
           <div className="max-w-5xl mx-auto px-4 flex gap-2 overflow-x-auto py-3 no-scrollbar">
             {CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => setSelectedCat(cat)}
+              <button key={cat} onClick={() => handleCategoryChange(cat)}
                 className={`flex-shrink-0 text-xs font-semibold px-4 py-1.5 rounded-full border transition-all ${selectedCat === cat ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>
                 {cat === "all" ? t.articlesAll : categoryLabels[cat]}
               </button>

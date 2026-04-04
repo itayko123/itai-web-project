@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Helmet } from "react-helmet-async";
+import { parseSmartSearch } from "@/lib/searchParser"; // הייבוא של מנוע החיפוש החכם
 
 const defaultFilters = { profession: "all", city: "all", format: "all", hmo: "all", gender: "all", maxPrice: 800, immediate: false, specialization: "all", treatment_method: "all", language: "all" };
 const PAGE_SIZE = 12;
@@ -55,7 +56,7 @@ const parseSlug = (slug) => {
 
 export default function TherapistSearch() {
   const { filter1, filter2 } = useParams(); // לוקח את המילים מה-URL
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // פענוח הכתובת ויצירת המסננים ההתחלתיים
   const initialFilters = useMemo(() => {
@@ -126,9 +127,56 @@ export default function TherapistSearch() {
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
     setPage(1);
+
+    // בונים אובייקט חדש שיכיל רק את המסננים שאינם "all" (כדי לשמור על URL נקי)
+    const newParams = new URLSearchParams();
+    
+    if (newFilters.profession !== "all") newParams.set("profession", newFilters.profession);
+    if (newFilters.city !== "all") newParams.set("city", newFilters.city);
+    if (newFilters.specialization !== "all") newParams.set("specialization", newFilters.specialization);
+    if (newFilters.language !== "all") newParams.set("language", newFilters.language);
+    if (newFilters.gender !== "all") newParams.set("gender", newFilters.gender);
+    if (newFilters.hmo !== "all") newParams.set("hmo", newFilters.hmo);
+    if (newFilters.format !== "all") newParams.set("format", newFilters.format);
+    if (newFilters.treatment_method !== "all") newParams.set("treatment_method", newFilters.treatment_method);
+    if (newFilters.immediate) newParams.set("immediate", "true");
+    
+    // אם יש גם חיפוש לפי שם
+    if (nameSearch.trim()) newParams.set("name", nameSearch.trim());
+
+    // מעדכנים את הכתובת בדפדפן!
+    setSearchParams(newParams);
   };
 
-  // --- יצירת משפטים דינמיים לכותרות ה-SEO (גאונות פרוגרמטית) ---
+  // --- הפונקציה לחיפוש החכם מתוך שורת הטקסט ---
+  const handleSmartSearchSubmit = (e) => {
+    if (e.key === 'Enter') {
+      const parsedData = parseSmartSearch(nameSearch);
+
+      const newFilters = { ...filters };
+      let hasChanges = false;
+
+      // אם מצאנו עיר/שיטה/תחום בטקסט החופשי, נעדכן את הפילטרים
+      if (parsedData.city) { newFilters.city = parsedData.city; hasChanges = true; }
+      if (parsedData.specialization) { newFilters.specialization = parsedData.specialization; hasChanges = true; }
+      if (parsedData.treatment_method) { newFilters.treatment_method = parsedData.treatment_method; hasChanges = true; }
+
+      if (hasChanges) {
+        handleFilterChange(newFilters);
+        
+        // מנקים את שורת החיפוש מהמילים שזוהו ומשאירים רק את השאר (למשל שם של מטפל)
+        let cleanedText = parsedData.originalText || "";
+        if (parsedData.city) cleanedText = cleanedText.replace(parsedData.city, "");
+        cleanedText = cleanedText.replace(/cbt|סיביטי|זוגי|זוגיות/ig, "").trim();
+        setNameSearch(cleanedText);
+      } else {
+        // אם לא זוהו מילים חכמות, פשוט מפעילים חיפוש רגיל (מעדכן את ה-URL)
+        handleFilterChange(filters);
+      }
+    }
+  };
+
+  // --- יצירת משפטים דינמיים לכותרות ה-SEO ---
   const profLabels = { all: "מטפלים", psychologist: "פסיכולוגים", psychiatrist: "פסיכיאטרים", psychotherapist: "פסיכותרפיסטים", social_worker: 'עובדים סוציאליים', counselor: "יועצים" };
   const treatLabels = { 'CBT': 'בגישת CBT', 'EMDR': 'בגישת EMDR', 'טיפול דינמי': 'בגישה דינמית', 'NLP': 'בגישת NLP', 'מיינדפולנס': 'בגישת מיינדפולנס' };
   const langLabels = { english: 'דוברי אנגלית', russian: 'דוברי רוסית', french: 'דוברי צרפתית', arabic: 'דוברי ערבית', spanish: 'דוברי ספרדית' };
@@ -161,7 +209,13 @@ export default function TherapistSearch() {
           
           <div className="relative mt-4 max-w-sm">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input value={nameSearch} onChange={e => { setNameSearch(e.target.value); setPage(1); }} placeholder="חיפוש לפי שם מטפל..." className="pr-9 h-10 text-sm" />
+            <Input 
+              value={nameSearch} 
+              onChange={e => { setNameSearch(e.target.value); }} 
+              onKeyDown={handleSmartSearchSubmit}
+              placeholder="חפשו עיר, שיטה, תחום או שם ולחצו Enter..." 
+              className="pr-9 h-10 text-sm border-primary/20 focus-visible:border-primary focus-visible:ring-primary/20" 
+            />
           </div>
           
           <p className="text-sm text-muted-foreground mt-3">{filtered.length} מטפלים נמצאו</p>

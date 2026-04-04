@@ -1,10 +1,12 @@
+// @ts-nocheck
 import { Link } from "react-router-dom";
 import { Clock, User, ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function ArticleCard({ article, categoryLabels, categoryColors }) {
+  const slug = article.title ? article.title.replace(/\s+/g, '-').replace(/[^\w\u0590-\u05FF-]/g, '') : '';
   return (
-    <Link to={`/articles/${article.id}`} className="group block bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+    <Link to={`/articles/${article.id}/${slug}`} className="group block bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300">
       {article.cover_image_url ? (
         <div className="h-44 overflow-hidden">
           <img src={article.cover_image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
