@@ -4,10 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Clock, ArrowRight, User, BookOpen, ExternalLink, BadgeCheck } from "lucide-react";
+import { Loader2, Clock, ArrowRight, BookOpen, ExternalLink, BadgeCheck } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useLanguage } from "@/lib/LanguageContext";
-// 1. הוספנו את הייבוא של ה-Helmet
 import { Helmet } from "react-helmet-async";
 
 const categoryLabels = {
@@ -21,33 +20,33 @@ const categoryColors = {
   general: "bg-gray-100 text-gray-700"
 };
 
+const SITE_URL = "https://itai-web-project.vercel.app";
+
 export default function ArticleDetailPage() {
-  const { id } = useParams();
+  const { id, slug } = useParams();
+  const identifier = id; // route is /articles/:id/:slug? — id is always present
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   const { data: article, isLoading } = useQuery({
-    queryKey: ["article", id],
-    enabled: !!id, 
+    queryKey: ["article", identifier],
+    enabled: !!identifier,
     queryFn: async () => {
+      // Detect if it's a UUID (old) or a slug (new)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
       const { data, error } = await supabase
         .from("Article")
         .select("*")
-        .eq("id", id)
-        .single(); 
+        .eq(isUUID ? "id" : "slug", identifier)
+        .single();
 
-      if (error) {
-        console.error("Supabase Error:", error);
-        throw error;
-      }
-      
+      if (error) throw error;
+
       if (data) {
-        supabase
-          .from("Article")
+        supabase.from("Article")
           .update({ view_count: (data.view_count || 0) + 1 })
           .eq("id", data.id)
-          .then(() => console.log("View count updated"))
-          .catch((err) => console.error("Error updating view count:", err));
+          .then(() => {}).catch(() => {});
       }
 
       return data;
@@ -73,29 +72,48 @@ export default function ArticleDetailPage() {
 
   if (!article) return (
     <div className="text-center py-20">
-      <p className="text-muted-foreground">{t.articleBackBtn}</p>
+      <p className="text-muted-foreground">מאמר לא נמצא</p>
       <Button variant="outline" className="mt-4" onClick={() => navigate("/articles")}>{t.articleBackBtn}</Button>
     </div>
   );
 
+  const canonicalUrl = article.slug
+    ? `${SITE_URL}/articles/${article.slug}`
+    : `${SITE_URL}/articles/${article.id}`;
+
+  const metaTitle = `${article.title} | מצא לי מטפל`;
+  const metaDescription = article.excerpt || (article.content?.substring(0, 155) ?? "");
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": article.title,
+    "description": metaDescription,
+    "url": canonicalUrl,
+    "datePublished": article.created_date,
+    "publisher": { "@type": "Organization", "name": "מצא לי מטפל", "url": SITE_URL },
+    ...(article.therapist_name ? { "author": { "@type": "Person", "name": article.therapist_name } } : {}),
+    ...(article.cover_image_url ? { "image": article.cover_image_url } : {}),
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* 2. הנה ה-SEO Magic! ברגע שהעמוד נטען, זה משנה את ה-head של האתר */}
       <Helmet>
-        {/* כותרת הדף (מה שרואים בטאב למעלה ובגוגל) */}
-        <title>{article.title} | Connect</title> 
-        {/* תיאור קצר לגוגל (לוקח את התקציר, ואם אין - חותך 150 תווים מהתוכן) */}
-        <meta name="description" content={article.excerpt || article.content?.substring(0, 150)} />
-        
-        {/* תגיות מיוחדות לשיתוף יפה בווטסאפ/פייסבוק */}
-        <meta property="og:title" content={article.title} />
-        <meta property="og:description" content={article.excerpt || article.content?.substring(0, 150)} />
-        {article.cover_image_url && (
-          <meta property="og:image" content={article.cover_image_url} />
-        )}
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="article" />
+        {article.cover_image_url && <meta property="og:image" content={article.cover_image_url} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDescription} />
+        {article.cover_image_url && <meta name="twitter:image" content={article.cover_image_url} />}
+        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
-      {/* Hero image */}
       {article.cover_image_url && (
         <div className="w-full h-64 md:h-80 overflow-hidden">
           <img src={article.cover_image_url} alt={article.title} className="w-full h-full object-cover" />
@@ -103,13 +121,11 @@ export default function ArticleDetailPage() {
       )}
 
       <div className="max-w-3xl mx-auto px-4 py-10">
-        {/* Back */}
         <button onClick={() => navigate("/articles")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8">
           <ArrowRight className="w-4 h-4" />
           {t.articleBackBtn}
         </button>
 
-        {/* Category + meta */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           {article.category && (
             <span className={`text-xs px-3 py-1 rounded-full font-semibold ${categoryColors[article.category] || categoryColors.general}`}>
@@ -119,26 +135,20 @@ export default function ArticleDetailPage() {
           {article.is_premium && <Badge className="bg-amber-100 text-amber-700 text-xs">{t.articlesPremium}</Badge>}
           {article.read_time_minutes && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-              <Clock className="w-3.5 h-3.5" />
-              {article.read_time_minutes} {t.articlesReadTime}
+              <Clock className="w-3.5 h-3.5" />{article.read_time_minutes} {t.articlesReadTime}
             </span>
           )}
         </div>
 
-        {/* Title */}
         <h1 className="text-3xl md:text-4xl font-black text-foreground leading-tight mb-6">{article.title}</h1>
 
-        {/* Author bio */}
         {article.therapist_name && (
           <div className="flex items-center gap-4 p-4 bg-accent/40 rounded-2xl border border-border mb-8">
             <div className="w-12 h-12 rounded-xl overflow-hidden bg-primary/10 flex-shrink-0">
-              {therapist?.photo_url ? (
-                <img src={therapist.photo_url} alt={article.therapist_name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-lg font-bold text-primary">
-                  {article.therapist_name.charAt(0)}
-                </div>
-              )}
+              {therapist?.photo_url
+                ? <img src={therapist.photo_url} alt={article.therapist_name} className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-lg font-bold text-primary">{article.therapist_name.charAt(0)}</div>
+              }
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -165,29 +175,20 @@ export default function ArticleDetailPage() {
           </div>
         )}
 
-        {/* Excerpt */}
         {article.excerpt && (
           <p className="text-lg text-muted-foreground leading-relaxed border-r-4 border-primary/40 pr-4 mb-8 font-medium">
             {article.excerpt}
           </p>
         )}
 
-        {/* Main content */}
-        <div className="prose prose-slate max-w-none text-base leading-relaxed
-          prose-headings:font-black prose-headings:text-foreground
-          prose-p:text-muted-foreground prose-p:leading-relaxed
-          prose-strong:text-foreground
-          prose-li:text-muted-foreground
-          prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+        <div className="prose prose-slate max-w-none text-base leading-relaxed prose-headings:font-black prose-headings:text-foreground prose-p:text-muted-foreground prose-p:leading-relaxed prose-strong:text-foreground prose-li:text-muted-foreground prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
           <ReactMarkdown>{article.content}</ReactMarkdown>
         </div>
 
-        {/* Footer disclaimer */}
         <div className="mt-12 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-800">
           {t.articleDisclaimer}
         </div>
 
-        {/* CTA */}
         <div className="mt-8 p-6 bg-card border border-border rounded-2xl text-center">
           <BookOpen className="w-8 h-8 text-primary mx-auto mb-3" />
           <h3 className="font-bold text-base mb-2">{t.articleCta}</h3>

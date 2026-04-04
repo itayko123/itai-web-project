@@ -106,8 +106,7 @@ const AuthenticatedApp = () => {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/articles" element={<ArticlesPage />} />
-          
-          {/* הוספנו את :slug? גם למאמרים */}
+          <Route path="/articles/category/:category" element={<ArticlesPage />} />  {/* ← ADD */}
           <Route path="/articles/:id/:slug?" element={<ArticleDetailPage />} />
           
           <Route path="/support-declaration" element={<SupportDeclarationPage />} />
