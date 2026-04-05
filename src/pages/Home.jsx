@@ -29,7 +29,7 @@ export default function Home() {
         <meta property="og:type" content="website" />
         <meta property="og:title" content="מצא לי מטפל | מאגר המטפלים המומלצים" />
         <meta property="og:description" content="הפלטפורמה החכמה והחינמית למציאת פסיכולוגים, פסיכותרפיסטים ומטפלים מומלצים. צרו קשר ישירות ללא עמלות." />
-        <meta property="og:url" content="https://www.findmytherapist.co.il/" />
+        <meta property="og:url" content="https://itai-web-project.vercel.app/" />
       </Helmet>
 
       <div>

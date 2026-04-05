@@ -78,6 +78,17 @@ const getWhatsAppLink = (phone, patientName) => {
   return `https://wa.me/${cleaned}?text=${message}`;
 };
 
+// פונקציית עזר לשליפת שם הלייבל מתוך קבוצות (שיטות טיפול והתמחויות)
+const getBadgeLabel = (groups, value) => {
+  if (!groups || !Array.isArray(groups)) return value;
+  for (const group of groups) {
+    const items = group.items || group.options || [];
+    const found = items.find(item => item.value === value);
+    if (found) return found.label;
+  }
+  return value;
+};
+
 export default function TherapistPortal() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -219,20 +230,19 @@ export default function TherapistPortal() {
     setEditMode(true);
   };
 
-const handleSave = () => {
-  updateMutation.mutate({
-    ...editData,
-    slug: generateTherapistSlug(editData.full_name, therapist.profession, editData.city, therapist.id),
-    price_per_session: editData.price_per_session ? Number(editData.price_per_session) : undefined,
-    years_experience: editData.years_experience ? Number(editData.years_experience) : undefined,
-    formats: editFormats,
-    hmo_affiliation: editHmos,
-    treatment_types: editTreatments,
-    specializations: editSpecs,
-    languages: editLanguages,
-  });        // ← closes mutate(
-};
-
+  const handleSave = () => {
+    updateMutation.mutate({
+      ...editData,
+      slug: generateTherapistSlug(editData.full_name, therapist.profession, editData.city, therapist.id),
+      price_per_session: editData.price_per_session ? Number(editData.price_per_session) : undefined,
+      years_experience: editData.years_experience ? Number(editData.years_experience) : undefined,
+      formats: editFormats,
+      hmo_affiliation: editHmos,
+      treatment_types: editTreatments,
+      specializations: editSpecs,
+      languages: editLanguages,
+    });        // ← closes mutate(
+  };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
@@ -455,6 +465,18 @@ const handleSave = () => {
                       <span>{therapist.website ? <a href={therapist.website} target="_blank" rel="noreferrer" className="text-primary hover:underline">קישור לאתר</a> : '-'}</span>
                     </p>
                   </div>
+
+                  {/* התמחויות */}
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">התמחויות</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {therapist.specializations?.length > 0 ? therapist.specializations.map(s => (
+                        <Badge key={s} variant="secondary" className="font-normal">
+                          {getBadgeLabel(SPECIALIZATION_GROUPS, s)}
+                        </Badge>
+                      )) : <span className="text-sm text-muted-foreground">לא צוין</span>}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -478,6 +500,18 @@ const handleSave = () => {
                     <div className="flex flex-wrap gap-1">
                       {therapist.languages?.length > 0 ? therapist.languages.map(l => (
                         <Badge key={l} variant="secondary" className="font-normal">{LANGUAGE_OPTIONS.find(opt => opt.value === l)?.label || l}</Badge>
+                      )) : <span className="text-sm text-muted-foreground">לא צוין</span>}
+                    </div>
+                  </div>
+
+                  {/* שיטות טיפול */}
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">שיטות טיפול</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {therapist.treatment_types?.length > 0 ? therapist.treatment_types.map(t => (
+                        <Badge key={t} variant="secondary" className="font-normal">
+                          {getBadgeLabel(TREATMENT_METHOD_GROUPS, t)}
+                        </Badge>
                       )) : <span className="text-sm text-muted-foreground">לא צוין</span>}
                     </div>
                   </div>
