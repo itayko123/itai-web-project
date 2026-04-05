@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
-import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send, Phone, X } from "lucide-react";
+import { BadgeCheck, MapPin, Globe, Video, Loader2, ArrowRight, Users, Languages, GraduationCap, Briefcase, BookOpen, AlertCircle, CheckCircle2, XCircle, Send, Phone, X, Sparkles } from "lucide-react";
 import { buildLabelMap, SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { toast } from "sonner";
 import { sanitizeFormData } from "@/utils/sanitize";
@@ -63,7 +63,6 @@ function PhoneRevealModal({ therapist, open, onClose }) {
       const token = await getRecaptchaToken("phone_reveal");
       if (!token) throw new Error("לא ניתן היה לאמת שאינך רובוט (חסר טוקן). בדוק חיבור אינטרנט או חוסמי פרסומות.");
       
-      // 2. אימות מול השרת (Supabase Edge Function)
       // 2. אימות מול השרת (Supabase Edge Function)
       const { data: captchaRes, error: captchaError } = await supabase.functions.invoke("verifyRecaptcha", { 
         body: { token } 
@@ -309,7 +308,7 @@ function ContactForm({ therapist }) {
 
 export default function TherapistProfile() {
   const { slug } = useParams();
-  const navigate = useNavigate(); // ← ADD THIS
+  const navigate = useNavigate();
   const [showPhoneModal, setShowPhoneModal] = useState(false);
 
 
@@ -319,7 +318,7 @@ const { data: therapist, isLoading } = useQuery({
     const { data, error } = await supabase
       .from('Therapist')
       .select('*')
-      .eq('slug', slug)   // ← new
+      .eq('slug', slug)
       .single();
     if (error) throw error;
     return data;
@@ -477,7 +476,7 @@ const { data: therapist, isLoading } = useQuery({
               </div>
             )}
 
-            {/* Specializations */}
+            {/* Specializations (תחומי התמחות) */}
             {therapist.specializations?.length > 0 && (
               <div className="bg-card border border-border rounded-2xl p-7">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -491,6 +490,24 @@ const { data: therapist, isLoading } = useQuery({
                 </div>
               </div>
             )}
+
+            {/* Treatment Methods (שיטות טיפול) - הוסף כאן! */}
+            {therapist.treatment_types?.length > 0 && (
+              <div className="bg-card border border-border rounded-2xl p-7">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  שיטות טיפול
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {therapist.treatment_types.map(t => (
+                    <Badge key={t} variant="outline" className="text-sm px-3 py-1 border-primary/20 bg-primary/5 text-foreground">
+                      {treatmentLabels[t] || t}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            
           </div>
 
           {/* Sidebar */}
