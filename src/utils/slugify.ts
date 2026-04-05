@@ -148,9 +148,9 @@ const hebrewToEnglish: Record<string, string> = {
 
 const cityMap : Record<string, string> =  {
   // ערים גדולות
-  'תל אביב-יפו':'tel-aviv',
-  'תל-אביב-יפו':'tel-aviv',
-  'תל אביב יפו':'tel-aviv',           'ירושלים':'jerusalem',
+  'תל אביב-יפו':'tel-aviv-jaffa',
+  'תל-אביב-יפו':'tel-aviv-jaffa',
+  'תל אביב יפו':'tel-aviv-jaffa',           'ירושלים':'jerusalem',
   'חיפה':'haifa',                 'ראשון לציון':'rishon-lezion',
   'פתח תקווה':'petah-tikva',      'אשדוד':'ashdod',
   'נתניה':'netanya',              'באר שבע':'beer-sheva',
