@@ -107,7 +107,6 @@ const cityMap = {
   'אשקלון':'ashkelon',
   'רחובות':'rehovot',
   'הרצליה':'herzliya',
-  'הרצלייה':'herzliya',
   'כפר סבא':'kfar-saba',
   'הוד השרון':'hod-hasharon',
   'רעננה':'raanana',
