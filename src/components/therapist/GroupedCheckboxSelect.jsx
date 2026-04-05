@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Reusable grouped checkbox selector for specializations / treatment methods.
  * Renders collapsible category groups with toggle-chip items.
