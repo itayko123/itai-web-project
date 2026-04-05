@@ -22,7 +22,7 @@ const professionSlugs = {
 };
 
 const cityMap = {
-  'תל אביב':'tel-aviv','ירושלים':'jerusalem','חיפה':'haifa',
+  'תל אביב':'tel-aviv-jaffa','ירושלים':'jerusalem','חיפה':'haifa',
   'ראשון לציון':'rishon-lezion','פתח תקווה':'petah-tikva','אשדוד':'ashdod',
   'נתניה':'netanya','באר שבע':'beer-sheva','הרצליה':'herzliya',
   'רמת גן':'ramat-gan','רעננה':'raanana','כפר סבא':'kfar-saba',
