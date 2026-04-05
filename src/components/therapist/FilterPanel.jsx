@@ -9,6 +9,7 @@ import { SlidersHorizontal, X, ChevronDown, ChevronUp } from "lucide-react";
 import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { ISRAEL_LOCATIONS } from "@/lib/israelLocations";
 import { useLanguage } from "@/lib/LanguageContext";
+import SmartSearch from "@/components/search/SmartSearch";
 
 function CompactGroupedSelect({ label, groups, value, onChange, allLabel }) {
   const [open, setOpen] = useState(false);
@@ -62,8 +63,35 @@ function CompactGroupedSelect({ label, groups, value, onChange, allLabel }) {
   );
 }
 
-export default function FilterPanel({ filters, onChange, onReset }) {
+export default function FilterPanel({ filters, onChange, onReset, onNameSearch }) {
   const { t } = useLanguage();
+
+  // SmartSearch handler — updates the right filter based on type
+  function handleSmartSelect(type, value, label) {
+    if (type === "city")              onChange({ ...filters, city: value });
+    if (type === "specialization")    onChange({ ...filters, specialization: value });
+    if (type === "treatment_method")  onChange({ ...filters, treatment_method: value });
+    if (type === "clear") {
+      onChange({ ...filters, city: "all", specialization: "all", treatment_method: "all" });
+      onNameSearch?.("");
+    }
+  }
+
+  function handleSmartName(name) {
+    onNameSearch?.(name);
+  }
+
+  // Build a label for the active smart filter summary
+  const smartSummaryParts = [];
+  if (filters.city && filters.city !== "all") smartSummaryParts.push(`📍 ${filters.city}`);
+  if (filters.specialization && filters.specialization !== "all") {
+    const label = SPECIALIZATION_GROUPS.flatMap(g => g.items).find(i => i.value === filters.specialization)?.label;
+    if (label) smartSummaryParts.push(`🧠 ${label}`);
+  }
+  if (filters.treatment_method && filters.treatment_method !== "all") {
+    const label = TREATMENT_METHOD_GROUPS.flatMap(g => g.items).find(i => i.value === filters.treatment_method)?.label;
+    if (label) smartSummaryParts.push(`⚡ ${label}`);
+  }
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 space-y-5 overflow-y-auto max-h-[calc(100vh-8rem)]">
@@ -77,6 +105,40 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </button>
       </div>
 
+      {/* ─── Smart Search ──────────────────────────────────────────────────── */}
+      <div className="space-y-1">
+        <Label className="text-xs font-medium text-muted-foreground">חיפוש חכם</Label>
+        <SmartSearch
+          placeholder="עיר, תחום, שיטה, שם מטפל..."
+          onSelect={handleSmartSelect}
+          onNameSearch={handleSmartName}
+        />
+        {/* Active smart filters pills */}
+        {smartSummaryParts.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {filters.city && filters.city !== "all" && (
+              <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
+                📍 {filters.city}
+                <button onClick={() => onChange({ ...filters, city: "all" })} className="hover:text-blue-900">×</button>
+              </span>
+            )}
+            {filters.specialization && filters.specialization !== "all" && (
+              <span className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
+                🧠 {SPECIALIZATION_GROUPS.flatMap(g => g.items).find(i => i.value === filters.specialization)?.label}
+                <button onClick={() => onChange({ ...filters, specialization: "all" })} className="hover:text-purple-900">×</button>
+              </span>
+            )}
+            {filters.treatment_method && filters.treatment_method !== "all" && (
+              <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
+                ⚡ {TREATMENT_METHOD_GROUPS.flatMap(g => g.items).find(i => i.value === filters.treatment_method)?.label}
+                <button onClick={() => onChange({ ...filters, treatment_method: "all" })} className="hover:text-emerald-900">×</button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ─── Profession ───────────────────────────────────────────────────── */}
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.filterProfession || "מקצוע"}</Label>
         <Select value={filters.profession} onValueChange={v => onChange({ ...filters, profession: v })}>
@@ -92,6 +154,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </Select>
       </div>
 
+      {/* ─── City ─────────────────────────────────────────────────────────── */}
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.city}</Label>
         <Select value={filters.city} onValueChange={v => onChange({ ...filters, city: v })}>
@@ -103,6 +166,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </Select>
       </div>
 
+      {/* ─── Specialization ───────────────────────────────────────────────── */}
       <CompactGroupedSelect
         label={t.treatment}
         groups={SPECIALIZATION_GROUPS}
@@ -111,6 +175,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         allLabel={t.all}
       />
 
+      {/* ─── Treatment Method ─────────────────────────────────────────────── */}
       <CompactGroupedSelect
         label={t.treatmentMethod}
         groups={TREATMENT_METHOD_GROUPS}
@@ -119,6 +184,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         allLabel={t.all}
       />
 
+      {/* ─── Format ───────────────────────────────────────────────────────── */}
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.format}</Label>
         <Select value={filters.format} onValueChange={v => onChange({ ...filters, format: v })}>
@@ -132,6 +198,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </Select>
       </div>
 
+      {/* ─── HMO ──────────────────────────────────────────────────────────── */}
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.hmo}</Label>
         <Select value={filters.hmo} onValueChange={v => onChange({ ...filters, hmo: v })}>
@@ -153,6 +220,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </Select>
       </div>
 
+      {/* ─── Language ─────────────────────────────────────────────────────── */}
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.language}</Label>
         <Select value={filters.language || "all"} onValueChange={v => onChange({ ...filters, language: v })}>
@@ -170,6 +238,7 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </Select>
       </div>
 
+      {/* ─── Gender ───────────────────────────────────────────────────────── */}
       <div className="space-y-1">
         <Label className="text-xs font-medium text-muted-foreground">{t.gender}</Label>
         <Select value={filters.gender} onValueChange={v => onChange({ ...filters, gender: v })}>
@@ -182,14 +251,13 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </Select>
       </div>
 
+      {/* ─── Price slider ─────────────────────────────────────────────────── */}
       <div className="space-y-2">
         <Label className="text-xs font-medium text-muted-foreground">
           {t.filterMaxBudget || "תקציב מקסימלי"}: ₪{filters.maxPrice}
         </Label>
         <Slider
-          min={100}
-          max={800}
-          step={50}
+          min={100} max={800} step={50}
           value={[filters.maxPrice]}
           onValueChange={([v]) => onChange({ ...filters, maxPrice: v })}
           className="w-full"
@@ -200,12 +268,10 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         </div>
       </div>
 
+      {/* ─── Immediate availability ───────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">{t.immediateAvailability}</Label>
-        <Switch
-          checked={filters.immediate}
-          onCheckedChange={v => onChange({ ...filters, immediate: v })}
-        />
+        <Switch checked={filters.immediate} onCheckedChange={v => onChange({ ...filters, immediate: v })} />
       </div>
     </div>
   );

@@ -7,77 +7,64 @@ import TherapistCard from "@/components/therapist/TherapistCard";
 import FilterPanel from "@/components/therapist/FilterPanel";
 import { SlidersHorizontal, Loader2, ChevronRight, ChevronLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Helmet } from "react-helmet-async";
+import SmartSearch from "@/components/search/SmartSearch";
 
 const defaultFilters = { profession: "all", city: "all", format: "all", hmo: "all", gender: "all", maxPrice: 800, immediate: false, specialization: "all", treatment_method: "all", language: "all" };
 const PAGE_SIZE = 12;
 
-// --- מילוני ה-SEO שלנו: מזהים מילים באנגלית מהכתובת ומתרגמים לערכים במסד הנתונים ---
 const seoDictionaries = {
   city: {
-    'tel-aviv': 'תל אביב', 'jerusalem': 'ירושלים', 'haifa': 'חיפה', 
-    'rishon-lezion': 'ראשון לציון', 'petah-tikva': 'פתח תקווה', 'ashdod': 'אשדוד', 
-    'netanya': 'נתניה', 'beer-sheva': 'באר שבע', 'holon': 'חולון', 
-    'bnei-brak': 'בני ברק', 'ramat-gan': 'רמת גן', 'rehovot': 'רחובות', 
-    'bat-yam': 'בת ים', 'ashkelon': 'אשקלון', 'kfar-saba': 'כפר סבא', 
-    'herzliya': 'הרצליה', 'hadera': 'חדרה', 'modiin': 'מודיעין', 
+    'tel-aviv': 'תל אביב', 'jerusalem': 'ירושלים', 'haifa': 'חיפה',
+    'rishon-lezion': 'ראשון לציון', 'petah-tikva': 'פתח תקווה', 'ashdod': 'אשדוד',
+    'netanya': 'נתניה', 'beer-sheva': 'באר שבע', 'holon': 'חולון',
+    'bnei-brak': 'בני ברק', 'ramat-gan': 'רמת גן', 'rehovot': 'רחובות',
+    'bat-yam': 'בת ים', 'ashkelon': 'אשקלון', 'kfar-saba': 'כפר סבא',
+    'herzliya': 'הרצליה', 'hadera': 'חדרה', 'modiin': 'מודיעין',
     'raanana': 'רעננה', 'hod-hasharon': 'הוד השרון'
   },
   profession: {
-    'psychologist': 'psychologist',
-    'psychiatrist': 'psychiatrist', 
-    'psychotherapist': 'psychotherapist', 
-    'social-worker': 'social_worker', 
-    'counselor': 'counselor'
+    'psychologist': 'psychologist', 'psychiatrist': 'psychiatrist',
+    'psychotherapist': 'psychotherapist', 'social-worker': 'social_worker', 'counselor': 'counselor'
   },
   treatment_method: {
-    'cbt': 'CBT', 'emdr': 'EMDR', 'dynamic': 'טיפול דינמי', 
+    'cbt': 'CBT', 'emdr': 'EMDR', 'dynamic': 'טיפול דינמי',
     'nlp': 'NLP', 'mindfulness': 'מיינדפולנס'
   },
   language: {
-    'english': 'english', 'russian': 'russian', 'french': 'french', 
+    'english': 'english', 'russian': 'russian', 'french': 'french',
     'arabic': 'arabic', 'spanish': 'spanish'
   }
 };
 
-// פונקציה חכמה שמבינה איזה סוג פילטר מופיע בכתובת
 const parseSlug = (slug) => {
   if (!slug) return null;
   for (const [type, dictionary] of Object.entries(seoDictionaries)) {
-    if (dictionary[slug]) {
-      return { type, value: dictionary[slug] };
-    }
+    if (dictionary[slug]) return { type, value: dictionary[slug] };
   }
   return null;
 };
 
 export default function TherapistSearch() {
-  const { filter1, filter2 } = useParams(); // לוקח את המילים מה-URL
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { filter1, filter2 } = useParams();
+  const [searchParams] = useSearchParams();
 
-  // פענוח הכתובת ויצירת המסננים ההתחלתיים
   const initialFilters = useMemo(() => {
     let baseFilters = { ...defaultFilters };
-    
-    // קריאת כתובות (SEO URLs) כמו /therapists/psychologist/tel-aviv
     [filter1, filter2].forEach(slug => {
       const parsed = parseSlug(slug);
       if (parsed) baseFilters[parsed.type] = parsed.value;
     });
-
-    // דריסה על ידי Query Params (חיפוש רגיל) אם ישנם
-    baseFilters.profession = searchParams.get("profession") || baseFilters.profession;
-    baseFilters.city = searchParams.get("city") || baseFilters.city;
-    baseFilters.specialization = searchParams.get("specialization") || baseFilters.specialization;
-    baseFilters.language = searchParams.get("language") || baseFilters.language;
-    baseFilters.gender = searchParams.get("gender") || baseFilters.gender;
-    baseFilters.hmo = searchParams.get("hmo") || baseFilters.hmo;
-    baseFilters.format = searchParams.get("format") || baseFilters.format;
+    baseFilters.profession       = searchParams.get("profession")       || baseFilters.profession;
+    baseFilters.city             = searchParams.get("city")             || baseFilters.city;
+    baseFilters.specialization   = searchParams.get("specialization")   || baseFilters.specialization;
+    baseFilters.language         = searchParams.get("language")         || baseFilters.language;
+    baseFilters.gender           = searchParams.get("gender")           || baseFilters.gender;
+    baseFilters.hmo              = searchParams.get("hmo")              || baseFilters.hmo;
+    baseFilters.format           = searchParams.get("format")           || baseFilters.format;
     baseFilters.treatment_method = searchParams.get("treatment_method") || baseFilters.treatment_method;
-    baseFilters.immediate = searchParams.get("immediate") === "true" ? true : baseFilters.immediate;
-
+    baseFilters.immediate        = searchParams.get("immediate") === "true" ? true : baseFilters.immediate;
     return baseFilters;
   }, [filter1, filter2, searchParams]);
 
@@ -85,7 +72,6 @@ export default function TherapistSearch() {
   const [nameSearch, setNameSearch] = useState(searchParams.get("name") || "");
   const [page, setPage] = useState(1);
 
-  // סנכרון במקרה של מעבר בין דפי SEO (למשל מתל אביב לחיפה דרך התפריט)
   useEffect(() => {
     setFilters(initialFilters);
     setPage(1);
@@ -112,7 +98,6 @@ export default function TherapistSearch() {
     if (filters.specialization !== "all" && !t.specializations?.includes(filters.specialization)) return false;
     if (filters.treatment_method !== "all" && !t.treatment_types?.includes(filters.treatment_method)) return false;
     if (filters.language !== "all" && !t.languages?.includes(filters.language)) return false;
-    
     if (nameSearch.trim()) {
       const q = nameSearch.trim().toLowerCase();
       if (!(t.full_name || "").toLowerCase().includes(q)) return false;
@@ -123,37 +108,29 @@ export default function TherapistSearch() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
+  const handleFilterChange = (newFilters) => { setFilters(newFilters); setPage(1); };
+
+  // SmartSearch on the search page updates filters directly
+  function handleSmartSelect(type, value) {
+    if (type === "city")             handleFilterChange({ ...filters, city: value });
+    if (type === "specialization")   handleFilterChange({ ...filters, specialization: value });
+    if (type === "treatment_method") handleFilterChange({ ...filters, treatment_method: value });
+    if (type === "clear") {
+      handleFilterChange({ ...filters, city: "all", specialization: "all", treatment_method: "all" });
+      setNameSearch("");
+    }
+  }
+
+  function handleSmartName(name) {
+    setNameSearch(name);
     setPage(1);
+  }
 
-    // בונים אובייקט חדש שיכיל רק את המסננים שאינם "all" (כדי לשמור על URL נקי)
-    const newParams = new URLSearchParams();
-    
-    if (newFilters.profession !== "all") newParams.set("profession", newFilters.profession);
-    if (newFilters.city !== "all") newParams.set("city", newFilters.city);
-    if (newFilters.specialization !== "all") newParams.set("specialization", newFilters.specialization);
-    if (newFilters.language !== "all") newParams.set("language", newFilters.language);
-    if (newFilters.gender !== "all") newParams.set("gender", newFilters.gender);
-    if (newFilters.hmo !== "all") newParams.set("hmo", newFilters.hmo);
-    if (newFilters.format !== "all") newParams.set("format", newFilters.format);
-    if (newFilters.treatment_method !== "all") newParams.set("treatment_method", newFilters.treatment_method);
-    if (newFilters.immediate) newParams.set("immediate", "true");
-    
-    // אם יש גם חיפוש לפי שם
-    if (nameSearch.trim()) newParams.set("name", nameSearch.trim());
-
-    // מעדכנים את הכתובת בדפדפן!
-    setSearchParams(newParams);
-  };
-
-  // --- יצירת משפטים דינמיים לכותרות ה-SEO (גאונות פרוגרמטית) ---
+  // SEO dynamic labels
   const profLabels = { all: "מטפלים", psychologist: "פסיכולוגים", psychiatrist: "פסיכיאטרים", psychotherapist: "פסיכותרפיסטים", social_worker: 'עובדים סוציאליים', counselor: "יועצים" };
-  const treatLabels = { 'CBT': 'בגישת CBT', 'EMDR': 'בגישת EMDR', 'טיפול דינמי': 'בגישה דינמית', 'NLP': 'בגישת NLP', 'מיינדפולנס': 'בגישת מיינדפולנס' };
   const langLabels = { english: 'דוברי אנגלית', russian: 'דוברי רוסית', french: 'דוברי צרפתית', arabic: 'דוברי ערבית', spanish: 'דוברי ספרדית' };
 
   let dynamicH1 = profLabels[filters.profession] || "מטפלים ופסיכולוגים";
-  if (filters.treatment_method !== "all" && treatLabels[filters.treatment_method]) dynamicH1 += " " + treatLabels[filters.treatment_method];
   if (filters.language !== "all" && langLabels[filters.language]) dynamicH1 += " " + langLabels[filters.language];
   if (filters.city !== "all") dynamicH1 += " ב" + filters.city;
 
@@ -172,23 +149,31 @@ export default function TherapistSearch() {
       <div className="max-w-6xl mx-auto px-4 py-8" dir="rtl">
         <div className="mb-6">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl md:text-3xl font-black text-foreground">
-              {dynamicH1}
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-black text-foreground">{dynamicH1}</h1>
             <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">✅ חינמי למטופלים</span>
           </div>
-          
-          <div className="relative mt-4 max-w-sm">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input value={nameSearch} onChange={e => { setNameSearch(e.target.value); setPage(1); }} placeholder="חיפוש לפי שם מטפל..." className="pr-9 h-10 text-sm" />
+
+          {/* Smart search bar on the search page */}
+          <div className="mt-4 max-w-lg">
+            <SmartSearch
+              placeholder="חפש לפי עיר, תחום טיפול, שיטת טיפול, שם מטפל..."
+              onSelect={handleSmartSelect}
+              onNameSearch={handleSmartName}
+              initialValue={nameSearch}
+            />
           </div>
-          
+
           <p className="text-sm text-muted-foreground mt-3">{filtered.length} מטפלים נמצאו</p>
         </div>
 
         <div className="flex gap-6">
           <aside className="hidden lg:block w-64 flex-shrink-0">
-            <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
+            <FilterPanel
+              filters={filters}
+              onChange={handleFilterChange}
+              onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }}
+              onNameSearch={handleSmartName}
+            />
           </aside>
 
           <div className="flex-1 min-w-0">
@@ -202,7 +187,12 @@ export default function TherapistSearch() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-80 overflow-y-auto">
                   <div className="pt-6 pb-10">
-                    <FilterPanel filters={filters} onChange={handleFilterChange} onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }} />
+                    <FilterPanel
+                      filters={filters}
+                      onChange={handleFilterChange}
+                      onReset={() => { setFilters(defaultFilters); setPage(1); setNameSearch(""); }}
+                      onNameSearch={handleSmartName}
+                    />
                   </div>
                 </SheetContent>
               </Sheet>
@@ -225,11 +215,8 @@ export default function TherapistSearch() {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {paginated.map((t, i) => (
-                    <TherapistCard key={t.id} therapist={t} priority={i < 4} />
-                  ))}
+                  {paginated.map((t, i) => <TherapistCard key={t.id} therapist={t} priority={i < 4} />)}
                 </div>
-
                 {totalPages > 1 && (
                   <nav className="flex items-center justify-center gap-2 mt-8">
                     <Button variant="outline" size="sm" onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={page === 1}><ChevronRight className="w-4 h-4" /></Button>

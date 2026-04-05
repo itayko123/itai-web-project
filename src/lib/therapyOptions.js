@@ -5,6 +5,7 @@
  */
 
 // ── SPECIALIZATIONS (תחומי טיפול) ──────────────────────────────────────────
+// @ts-nocheck
 
 export const SPECIALIZATION_GROUPS = [
   {

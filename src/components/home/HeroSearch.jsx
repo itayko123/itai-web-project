@@ -3,11 +3,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, Sparkles, ChevronDown, ChevronUp, SlidersHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { useLanguage } from "@/lib/LanguageContext";
 import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOptions";
 import { ISRAEL_LOCATIONS } from "@/lib/israelLocations";
+import SmartSearch from "@/components/search/SmartSearch";
 
 export default function HeroSearch() {
   const navigate = useNavigate();
@@ -23,6 +23,23 @@ export default function HeroSearch() {
   const [immediate, setImmediate] = useState(false);
   const [showAllFilters, setShowAllFilters] = useState(false);
   const [nameSearch, setNameSearch] = useState("");
+
+  // SmartSearch sets filters based on what the user selected
+  function handleSmartSelect(type, value, label) {
+    if (type === "city")             setCity(value);
+    if (type === "specialization")   setSpecialization(value);
+    if (type === "treatment_method") setTreatment(value);
+    if (type === "clear") {
+      setCity("");
+      setSpecialization("");
+      setTreatment("");
+      setNameSearch("");
+    }
+  }
+
+  function handleSmartNameSearch(name) {
+    setNameSearch(name);
+  }
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -66,18 +83,46 @@ export default function HeroSearch() {
           {t.free}
         </div>
 
-        <div className="relative max-w-sm mx-auto w-full mb-3">
-          <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <Input
-            value={nameSearch}
-            onChange={e => setNameSearch(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSearch()}
-            placeholder={t.searchByName || "חיפוש לפי שם מטפל..."}
-            className="pr-9 h-11 rounded-xl bg-white text-sm border-border"
+        {/* ─── Smart Search Bar ──────────────────────────────────────────── */}
+        <div className="relative max-w-2xl mx-auto w-full mb-3">
+          <SmartSearch
+            placeholder="חפש לפי עיר, תחום טיפול, שיטת טיפול, שם מטפל..."
+            onSelect={handleSmartSelect}
+            onNameSearch={handleSmartNameSearch}
           />
+          {/* Active filter pills */}
+          {(city || specialization || treatment || nameSearch) && (
+            <div className="flex flex-wrap gap-1.5 mt-2 justify-center">
+              {city && (
+                <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+                  📍 {city}
+                  <button onClick={() => setCity("")} className="hover:text-blue-900">×</button>
+                </span>
+              )}
+              {specialization && (
+                <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full">
+                  🧠 {SPECIALIZATION_GROUPS.flatMap(g => g.items).find(i => i.value === specialization)?.label || specialization}
+                  <button onClick={() => setSpecialization("")} className="hover:text-purple-900">×</button>
+                </span>
+              )}
+              {treatment && (
+                <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
+                  ⚡ {TREATMENT_METHOD_GROUPS.flatMap(g => g.items).find(i => i.value === treatment)?.label || treatment}
+                  <button onClick={() => setTreatment("")} className="hover:text-emerald-900">×</button>
+                </span>
+              )}
+              {nameSearch && (
+                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full">
+                  👤 {nameSearch}
+                  <button onClick={() => setNameSearch("")} className="hover:text-gray-900">×</button>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg border border-border p-2 flex flex-col md:flex-row gap-2">
+        {/* ─── Main filter row ────────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-lg border border-border p-2 flex flex-col md:flex-row gap-2 max-w-2xl mx-auto">
           <Select onValueChange={setProfession}>
             <SelectTrigger aria-label={t.therapistType || "סוג מטפל"} className="flex-1 h-12 border-0 shadow-none text-sm bg-transparent">
               <SelectValue placeholder={t.therapistType || "סוג מטפל"} />
@@ -94,7 +139,7 @@ export default function HeroSearch() {
 
           <div className="hidden md:block w-px bg-border self-stretch my-1" />
 
-          <Select onValueChange={setCity}>
+          <Select value={city || "all"} onValueChange={v => setCity(v === "all" ? "" : v)}>
             <SelectTrigger aria-label={t.city || "עיר"} className="flex-1 h-12 border-0 shadow-none text-sm bg-transparent">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-gray-500" aria-hidden="true" />
@@ -109,7 +154,7 @@ export default function HeroSearch() {
 
           <div className="hidden md:block w-px bg-border self-stretch my-1" />
 
-          <Select onValueChange={setSpecialization}>
+          <Select value={specialization || "all"} onValueChange={v => setSpecialization(v === "all" ? "" : v)}>
             <SelectTrigger aria-label={t.treatment || "תחום טיפול"} className="flex-1 h-12 border-0 shadow-none text-sm bg-transparent">
               <SelectValue placeholder={t.treatment || "תחום טיפול"} />
             </SelectTrigger>
@@ -132,17 +177,18 @@ export default function HeroSearch() {
           </Button>
         </div>
 
+        {/* ─── More filters toggle ─────────────────────────────────────────── */}
         <button
           onClick={() => setShowAllFilters(!showAllFilters)}
           className="mt-3 flex items-center gap-1.5 mx-auto text-xs text-primary font-medium hover:underline"
         >
           <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
           {showAllFilters ? "הסתר פילטרים" : "כל הפילטרים"}
-          {showAllFilters ? <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" /> : <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />}
+          {showAllFilters ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
 
         {showAllFilters && (
-          <div className="mt-3 bg-white rounded-2xl shadow border border-border p-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-right">
+          <div className="mt-3 bg-white rounded-2xl shadow border border-border p-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-right max-w-2xl mx-auto">
             <Select onValueChange={setHmo}>
               <SelectTrigger aria-label="קופת חולים או ביטוח" className="h-10 text-sm">
                 <SelectValue placeholder="קופת חולים / ביטוח" />
@@ -210,7 +256,7 @@ export default function HeroSearch() {
 
             <div className="col-span-2 md:col-span-3">
               <p className="text-xs font-semibold text-gray-700 mb-1.5">שיטת טיפול</p>
-              <Select onValueChange={setTreatment}>
+              <Select value={treatment || "all"} onValueChange={v => setTreatment(v === "all" ? "" : v)}>
                 <SelectTrigger aria-label="שיטת טיפול" className="h-10 text-sm w-full">
                   <SelectValue placeholder="כל השיטות" />
                 </SelectTrigger>
@@ -243,7 +289,7 @@ export default function HeroSearch() {
           </div>
         )}
 
-        {/* --- התיקון והחידוש מ-BASE44 נמצא כאן --- */}
+        {/* Quick tags */}
         <div className="flex flex-wrap justify-center gap-2 mt-5">
           {[
             { label: "חרדה", value: "anxiety" },
