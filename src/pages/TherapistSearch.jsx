@@ -16,7 +16,7 @@ const PAGE_SIZE = 12;
 
 const seoDictionaries = {
   city: {
-    'tel-aviv': 'תל אביב', 'jerusalem': 'ירושלים', 'haifa': 'חיפה',
+    'tel-aviv-jaffa': 'תל אביב-יפו', 'jerusalem': 'ירושלים', 'haifa': 'חיפה',
     'rishon-lezion': 'ראשון לציון', 'petah-tikva': 'פתח תקווה', 'ashdod': 'אשדוד',
     'netanya': 'נתניה', 'beer-sheva': 'באר שבע', 'holon': 'חולון',
     'bnei-brak': 'בני ברק', 'ramat-gan': 'רמת גן', 'rehovot': 'רחובות',

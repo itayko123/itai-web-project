@@ -16,7 +16,7 @@ function fuzzyMatch(text, query) {
 // Common typo / alias map (English → Hebrew, English short → full)
 const ALIASES = {
   // Cities
-  "tel aviv": "תל אביב", "telaviv": "תל אביב", "tel abib": "תל אביב",
+  "tel aviv": "תל אביב-יפו", "telaviv": "תל אביב-יפו", "tel abib": "תל אביב-יפו",
   "jerusalem": "ירושלים", "jeruzalem": "ירושלים",
   "haifa": "חיפה", "hayfa": "חיפה",
   "netanya": "נתניה", "nathanya": "נתניה",

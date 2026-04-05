@@ -325,7 +325,7 @@ export const useLanguage = () => {
       registerAbout: "אודות",
       registerAboutPlaceholder: "ספר/י על גישת הטיפול שלך, ניסיונך והתמחויותיך...",
       registerCity: "עיר",
-      registerCityPlaceholder: "תל אביב",
+      registerCityPlaceholder: "תל אביב-יפו",
       registerPrice: "מחיר לפגישה (₪)",
       registerPhone: "טלפון",
       registerEmail: "אימייל",
