@@ -20,7 +20,7 @@ const categoryLabelsHe = {
 export default function ArticlesSection() {
   const { t } = useLanguage();
   const { data: articles = [] } = useQuery({
-    queryKey: ["home-articles"],
+    queryKey: ["home-s"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("Article")

@@ -16,6 +16,7 @@ import { SPECIALIZATION_GROUPS, TREATMENT_METHOD_GROUPS } from "@/lib/therapyOpt
 import { useLanguage } from "@/lib/LanguageContext";
 import { sanitizeFormData } from "@/utils/sanitize";
 import { generateTherapistSlug } from '@/utils/slugify';
+import CitySelect from "@/components/ui/CitySelect";
 
 const professionSlugs = {
   psychologist: 'psychologist',
@@ -357,7 +358,11 @@ export default function RegisterTherapist() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label className="text-xs">{t.registerCity || "עיר"}</Label>
-            <Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder={t.registerCityPlaceholder || "תל אביב"} />
+            <CitySelect
+              value={form.city}
+              onChange={city => setForm({...form, city})}
+              placeholder="חיפוש עיר..."
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">{t.registerPrice || "מחיר לפגישה (₪)"}</Label>
