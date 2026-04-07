@@ -17,10 +17,16 @@ const categoryLabelsHe = {
   parenting: "הורות", trauma: "טראומה", mindfulness: "מיינדפולנס", general: "כללי"
 };
 
+// Use slug if available, fallback to id only — never Hebrew in URL
+function articleUrl(article) {
+  return article.slug ? `/articles/${article.slug}` : `/articles/${article.id}`;
+}
+
 export default function ArticlesSection() {
   const { t } = useLanguage();
+
   const { data: articles = [] } = useQuery({
-    queryKey: ["home-s"],
+    queryKey: ["home-articles"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("Article")
@@ -33,10 +39,7 @@ export default function ArticlesSection() {
     },
   });
 
-  // הבטחה שתמיד יש מערך לפני שעושים פעולות
-  const safeArticles = articles || [];
-
-  if (safeArticles.length === 0) return null;
+  if (!articles.length) return null;
 
   return (
     <section className="py-16 px-4 bg-background">
@@ -50,32 +53,40 @@ export default function ArticlesSection() {
             {t.articlesSectionViewAll || "לכל המאמרים"} <ArrowLeft className="w-3.5 h-3.5" />
           </Link>
         </div>
+
         <div className="grid md:grid-cols-3 gap-5">
-          {safeArticles?.map(article => {
-            // התיקון: ה-slug מחושב פה *בתוך* הלולאה, איפה שהמשתנה article באמת קיים!
-            const slug = article.title ? article.title.replace(/\s+/g, '-').replace(/[^\w\u0590-\u05FF-]/g, '') : '';
-            
-            return (
-              <Link key={article.id} to={`/articles/${article.id}/${slug}`} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 block">
-                {article.cover_image_url && (
-                  <div className="h-40 overflow-hidden">
-                    <img src={article.cover_image_url} alt={article.title} className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="p-4">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block mb-2 ${categoryColors[article.category] || categoryColors.general}`}>
-                    {categoryLabelsHe[article.category] || "כללי"}
-                  </span>
-                  <h3 className="font-bold text-sm mb-1 line-clamp-2">{article.title}</h3>
-                  {article.excerpt && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{article.excerpt}</p>}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    {article.therapist_name && <span className="flex items-center gap-1"><User className="w-3 h-3" />{article.therapist_name}</span>}
-                    {article.read_time_minutes && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{article.read_time_minutes} {t.articlesReadTime}</span>}
-                  </div>
+          {articles.map(article => (
+            <Link
+              key={article.id}
+              to={articleUrl(article)}
+              className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 block"
+            >
+              {article.cover_image_url && (
+                <div className="h-40 overflow-hidden">
+                  <img src={article.cover_image_url} alt={article.title} className="w-full h-full object-cover" />
                 </div>
-              </Link>
-            );
-          })}
+              )}
+              <div className="p-4">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block mb-2 ${categoryColors[article.category] || categoryColors.general}`}>
+                  {categoryLabelsHe[article.category] || "כללי"}
+                </span>
+                <h3 className="font-bold text-sm mb-1 line-clamp-2">{article.title}</h3>
+                {article.excerpt && <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{article.excerpt}</p>}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {article.therapist_name && (
+                    <span className="flex items-center gap-1">
+                      <User className="w-3 h-3" />{article.therapist_name}
+                    </span>
+                  )}
+                  {article.read_time_minutes && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />{article.read_time_minutes} {t.articlesReadTime}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
